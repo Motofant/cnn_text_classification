@@ -10,7 +10,6 @@ def existProf(config_location, name):
     return config.has_section(name)
 
 
-
 def newProf(name):
     config = cop.ConfigParser()
     config[name] = {

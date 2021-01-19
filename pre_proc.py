@@ -110,7 +110,8 @@ def dictionary_old(path,word_arr):
             writer.writerow([word])  
     return num_arr
 
-def dictionary(path,word_arr):
+def dictionary(path,word_arr, training, text_length):
+    # returns fixedsized numberarray
     word_dict=[[],[]]
     num_arr=[]
 
@@ -126,20 +127,30 @@ def dictionary(path,word_arr):
                     word_dict[0].append(row[0])
                     word_dict[1].append(row[1])
             except:
+                print("invalid dictionary-line")
                 pass   
             print("Completed reading")
 
     ## write info in word_dict
-    for word in word_arr:
-        if not word in word_dict[0]: 
-            word_dict[0].append(word)
-            word_dict[1].append(0)          # get's counted later       
-        num_arr.append(word_dict[0].index(word))
-        
-    ## update lexsize
+    if training:
+        for word in word_arr:
+            if not word in word_dict[0]: 
+                word_dict[0].append(word)
+                word_dict[1].append(0)          # get's counted later       
+            num_arr.append(word_dict[0].index(word))
+
+    else: 
+        # new word in Testingdata
+        for word in word_arr:
+            if not word in word_dict[0]: 
+                # 1 = doesn't exist in dictionary
+                num_arr.append(1)
+                continue
+            num_arr.append(word_dict[0].index(word))
+
+    # lexsize has to be saved regardless wether training data or not    
     global lex_size 
     lex_size = len(word_dict[0])
-
 
     ## calculating doc freq
     i = 0
@@ -163,7 +174,10 @@ def dictionary(path,word_arr):
     global TEXT_CT
     TEXT_CT += 1  
 
-    return num_arr
+    # bring Text to standart size
+    num_arr_fixsize = fillText(num_arr,text_length)
+
+    return num_arr_fixsize
 
 def cutWord(text,modus): 
     # text: newsarticle 

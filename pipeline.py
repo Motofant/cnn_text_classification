@@ -51,7 +51,7 @@ def newProfil(config, name, data):
         # set data to False, if settings not closer defiend
         if data:
             # TODO: try
-            c.newProfMauell(name, data[0],data[1],data[2],data[3],data[4],data[5])
+            c.newProfMauell(name, data[0],data[1],data[2],data[3],data[4],data[5],data[6])
         else:
             c.newProf(name)
     return "Profil created succesfully."
@@ -61,6 +61,7 @@ def newDictionary(path):
     with open(file_name, mode='w+', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         writer.writerow(["BLANK",0])
+        writer.writerow(["NOT IN TRAINING",0])
     return file_name
 
 # helping Function
@@ -95,12 +96,12 @@ def readFile(in_file, train):
     text_count += len(file_in)
     return file_in,category#, len(file_in)
 
-def textAna(text_in, prep_mode, dictio):
+def textAna(text_in, prep_mode, dictio, train, text_len):
     preproc_out = []
 
 
     for text in text_in:
-        preproc_out.append(p.dictionary(dictio,p.cutWord(text,prep_mode)))
+        preproc_out.append(p.dictionary(dictio,p.cutWord(text,prep_mode), train, text_len))
     
     return preproc_out
 
@@ -126,11 +127,10 @@ def encodingTyp(arr_in, code, dict_len):
         # not Bag of word -> fix size manualy
         y = []
         for text in arr_in:
-            y.append(p.fillText(text, word_max))
+            y.append(text)
         if code == 2:
             coding_out = np.array([p.oneHot(y,dict_len,word_max)])
             for text in arr_in[1:]:
-                text = p.fillText(text,word_max)
                 coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,word_max)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
         else:
         # no modification to encoding ->  ordinal encoding
@@ -172,7 +172,7 @@ def saveData(path, data, prep, code):
             writer.writerow(line)
 
 def saveShutdown(config_name, saved_states):
-    c.saveProf(config_name,saved_states[0],saved_states[1],saved_states[2],saved_states[3],saved_states[4],saved_states[5])
+    c.saveProf(config_name,saved_states[0],saved_states[1],saved_states[2],saved_states[3],saved_states[4],saved_states[5],saved_states[6])
 
 def loadValues(path):
     file_name = path + "start_config.txt"
@@ -270,7 +270,7 @@ if training:
         saveCat(topic_file, cat,  preproc,coding)
 
 # call function wordcut + preprocessing
-analysed_text = textAna(text,preproc,dic_file)
+analysed_text = textAna(text,preproc,dic_file,training, word_max)
 
 
 if final_set:
