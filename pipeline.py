@@ -56,8 +56,8 @@ def newProfil(config, name, data):
             c.newProf(name)
     return "Profil created succesfully."
 
-def newDictionary(path):
-    file_name = path + "dictionary.csv"
+def newDictionary(path, name):
+    file_name = path +"/"+name+ "_dictionary.csv"
     with open(file_name, mode='w+', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         writer.writerow(["BLANK",0])
@@ -218,7 +218,7 @@ def loadConfig(config_name):
 #####################
 ### Pipeline
 #####################
-'''
+
 # Commandline
 # shortest input: pipeline.py inputfile (default config, final input, testingset)
 # longest input: pipeline.py config -t -n inputfile (Input not final, trainingset)
@@ -230,7 +230,17 @@ if length < 2 or length > 7:
 
 
 for arg in sys.argv:
-    
+    # extra functions
+    if arg == "-dict":
+        try:
+            newDictionary(sys.argv[2],sys.argv[3])
+            print("Dictionary created succesfully")
+        except:
+            print("wrong input")
+        exit()
+
+
+
     # Inputfile is not the final input
     if arg == "-n":
         final_set = False
@@ -253,7 +263,7 @@ if not c.existProf("C:/Users/Erik/Desktop/test.ini",loaded_config):
 if not os.path.isfile(input_file):
     print("Input file doesn't exist, shutting down.")
     exit()
-'''
+
 
 # load Config, if not defiend use default
 
