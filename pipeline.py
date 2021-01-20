@@ -3,6 +3,7 @@ import configtry as c
 import numpy as np
 import csv
 import sys
+from os import path,listdir
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 #### variables
@@ -40,7 +41,8 @@ dict_file_dir = './dictionary/'
 save_file_dir = './save/'
 out_file_dir = './output/'
 
-# TODO: insert cmd args
+# file name (used for creating saves and outputs)
+file_name = ""
 
 # create new stuff
 def newProfil(config, name, data):
@@ -73,6 +75,9 @@ def dictLen(path):
             dict_len += 1
     return dict_len
 
+def getFilename(input_path):
+    return path.splitext(path.basename(input_path))[0]
+
 # actually relevant to Pipeline
 def readFile(in_file, train):
     file_in = []
@@ -102,7 +107,6 @@ def textAna(text_in, prep_mode, dictio, train, text_len):
 
     for text in text_in:
         preproc_out.append(p.dictionary(dictio,p.cutWord(text,prep_mode), train, text_len))
-    
     return preproc_out
 
 def texAnaTfIdf(text_in,dictio,border):
@@ -114,7 +118,7 @@ def texAnaTfIdf(text_in,dictio,border):
 
     return preproc_out
 
-def encodingTyp(arr_in, code, dict_len):
+def encodingTyp(arr_in, code, dict_len, text_l):
     ## Bag of words
     # static size -> fillword not needed
     if code == 1:
@@ -125,13 +129,15 @@ def encodingTyp(arr_in, code, dict_len):
             coding_out = np.vstack((coding_out,p.bagOfWords(text, dict_len)))
     else:
         # not Bag of word -> fix size manualy
-        y = []
-        for text in arr_in:
-            y.append(text)
+#        y = []
+
+#        for text in arr_in:
+#            y.append(text)
         if code == 2:
-            coding_out = np.array([p.oneHot(y,dict_len,word_max)])
+            #breakpoint()
+            coding_out = np.array([p.oneHot(arr_in[0],dict_len,text_l)])
             for text in arr_in[1:]:
-                coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,word_max)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
+                coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,text_l)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
         else:
         # no modification to encoding ->  ordinal encoding
             return arr_in
@@ -162,10 +168,10 @@ def loadCat(path, prep, code):
                 out.append(element)
     return out
 
-def saveData(path, data, prep, code):
+def saveData(path, data, prep, code, name):
     # Used when data modified via tf-idf is includeed in multiple sittings 
     # define savefile
-    file_name = path + "text_"+str(prep)+"_"+str(code)+".csv"
+    file_name = path + "text_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
     with open(file_name, mode='a', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         for line in data:
@@ -182,16 +188,22 @@ def loadValues(path):
     return saved_values
 
 def loadData(path, prep, code):
-    file_name = path + "text_"+ "_"+str(prep)+"_"+str(code)+".csv"
+    # get all saved files with same preprocessing and encoding
+    file_params = "text_"+str(prep)+"_"+str(code)
     output = []
-    with open(file_name, mode=p.pathExists(file_name), newline='', encoding= 'utf8') as dictFile:
-        reader = csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        for row in reader:
-            i = 0
-            for nr in row:
-                row[i] = int(nr)
-                i += 1
-            output.append(row)
+    #breakpoint()
+    for f in listdir(path):
+        if file_params in getFilename(f):
+            with open(file_name, mode=p.pathExists(file_name), newline='', encoding= 'utf8') as dictFile:
+                reader = csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                for row in reader:
+                    i = 0
+                    for nr in row:
+                        row[i] = int(nr)
+                        i += 1
+                    output.append(row)
+
+    ## output like [[dat1text1],[dat2text1],[dat2text2]...] -> no difference 
     return output
 
 def loadConfig(config_name):
@@ -257,13 +269,15 @@ for arg in sys.argv:
         loaded_config = arg
 
 # check validity of File and config
-if not c.existProf("C:/Users/Erik/Desktop/test.ini",loaded_config):
+if not c.existProf("test.ini",loaded_config):
     print("No valid config, continue with default.")
     loaded_config = "def"
-if not os.path.isfile(input_file):
+if not path.isfile(input_file):
     print("Input file doesn't exist, shutting down.")
     exit()
 
+# get Filename to create output
+file_name = getFilename(input_file)
 
 # load Config, if not defiend use default
 
@@ -283,15 +297,19 @@ if training:
 analysed_text = textAna(text,preproc,dic_file,training, word_max)
 
 
-if final_set:
+if final_set: 
+    #breakpoint()
+    save_data = loadData(save_file_dir, preproc, coding)
+    if save_data:
+        analysed_text.insert(0,save_data)
     if preproc == 3:
         analysed_text = texAnaTfIdf(analysed_text,dic_file,bar)
     
-    analysed_text = loadData(save_file_dir, preproc, coding) + analysed_text
-    final_output = encodingTyp(analysed_text, coding, dictLen(dic_file))
-    saveData(out_file_dir,final_output, preproc, coding)
+    final_output = encodingTyp(analysed_text, coding, dictLen(dic_file),word_max)
+    saveData(out_file_dir,final_output, preproc, coding, "")
+
 else:
-    saveData(save_file_dir,list(analysed_text), preproc, coding)
+    saveData(save_file_dir,list(analysed_text), preproc, coding, file_name)
 
 # ending, saves necessary data for next launch
 # updating values

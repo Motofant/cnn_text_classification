@@ -5,6 +5,8 @@ from keras.layers import MaxPooling1D, Dense, Dropout, Flatten, Conv2D, Conv1D, 
 import csv
 import pandas as pd 
 
+
+# TODO: encode to onehot when asked
 # define variables
 input_file = "C:/Users/Erik/Desktop/cnn_testinput.csv"# bow encoded input
 cat_input = "C:/Users/Erik/Desktop/cnn_testinput_cat.csv"

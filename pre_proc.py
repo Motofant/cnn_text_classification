@@ -120,7 +120,7 @@ def dictionary(path,word_arr, training, text_length):
         
         ## check if empty, read if not
         if os.path.getsize(path)>2:
-            print("not empty")
+            #print("not empty")
             reader= csv.reader(dictFile, delimiter='\t', quotechar=',', quoting=csv.QUOTE_MINIMAL)
             try:
                 for row in reader:                    
@@ -129,7 +129,7 @@ def dictionary(path,word_arr, training, text_length):
             except:
                 print("invalid dictionary-line")
                 pass   
-            print("Completed reading")
+            #print("Completed reading")
 
     ## write info in word_dict
     if training:
