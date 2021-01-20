@@ -67,7 +67,7 @@ def fillText(num_arr, text_l):
     elif text_l < len(num_arr):
         out_arr = num_arr[:text_l]
     else: 
-        return num_arr
+        return np.asarray(num_arr)
     return out_arr
 
 # used for categorizing as well
@@ -121,14 +121,15 @@ def dictionary(path,word_arr, training, text_length):
         ## check if empty, read if not
         if os.path.getsize(path)>2:
             #print("not empty")
-            reader= csv.reader(dictFile, delimiter='\t', quotechar=',', quoting=csv.QUOTE_MINIMAL)
+            reader= csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             try:
                 for row in reader:                    
                     word_dict[0].append(row[0])
                     word_dict[1].append(row[1])
             except:
                 print("invalid dictionary-line")
-                pass   
+                print(row)
+                #pass   
             #print("Completed reading")
 
     ## write info in word_dict
@@ -276,12 +277,12 @@ def topic(category, path):
 
         ## check if empty, read if not (empty csv-file -> 2 bytes)
         if os.path.getsize(path)>2:
-            print("not empty")
+            #print("not empty")
             reader= csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for row in reader:
                 #print("2")
                 word_dict.append(row[0])
-            print("Completed reading") 
+            #print("Completed reading") 
 
     if not category in word_dict: 
         word_dict.append(category)

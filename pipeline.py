@@ -34,8 +34,8 @@ loaded_config = "def"
 # files
 
 dic_file = 'C:/Users/Erik/Desktop/dictionary.csv'
-topic_dic_file = 'C:/Users/Erik/Desktop/kat.csv'
-topic_file = 'C:/Users/Erik/Desktop/save/topic/'
+topic_dic_file = './dictionary/kat.csv'
+topic_file = './save/'
 input_file = 'C:/Users/Erik/Desktop/check.csv'
 dict_file_dir = './dictionary/'
 save_file_dir = './save/'
@@ -129,10 +129,10 @@ def encodingTyp(arr_in, code, dict_len, text_l):
             coding_out = np.vstack((coding_out,p.bagOfWords(text, dict_len)))
     else:
         # not Bag of word -> fix size manualy
-#        y = []
+ #        y = []
 
-#        for text in arr_in:
-#            y.append(text)
+ #        for text in arr_in:
+ #            y.append(text)
         if code == 2:
             #breakpoint()
             coding_out = np.array([p.oneHot(arr_in[0],dict_len,text_l)])
@@ -152,27 +152,35 @@ def category(cat_in, topic_file):
     return y
 
 # Saving and loading
-def saveCat(path, data, prep, code):
+def saveCat(path, data, prep, code, name):
     file_name = path + "topic_"+str(prep)+"_"+str(code)+".csv"
-    with open(file_name, mode='w+', newline='', encoding= 'utf8') as dictFile:
+    
+    # including represented file
+    representing = "text_"+str(prep)+"_"+str(code)+"_"+str(name)
+    data.insert(0,representing)
+    
+    with open(file_name, mode='a', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         writer.writerow(data)
 
 def loadCat(path, prep, code):
     file_name = path + "topic_"+str(prep)+"_"+str(code)+".csv"
     out = []
+
     with open(file_name, mode=p.pathExists(file_name), newline='', encoding= 'utf8') as dictFile:
         reader = csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         for row in reader:
-            for element in row:
-                out.append(element)
+            transfer =[row[0]]
+            for element in row[1:]:
+                transfer.append(int(element))
+            out.append(transfer)
     return out
 
 def saveData(path, data, prep, code, name):
     # Used when data modified via tf-idf is includeed in multiple sittings 
     # define savefile
     file_name = path + "text_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
-    with open(file_name, mode='a', newline='', encoding= 'utf8') as dictFile:
+    with open(file_name, mode='a+', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         for line in data:
             writer.writerow(line)
@@ -187,21 +195,20 @@ def loadValues(path):
         saved_values = list(map(int,savefile.readlines()))
     return saved_values
 
-def loadData(path, prep, code):
+def loadData(path, prep, code, name ):
     # get all saved files with same preprocessing and encoding
-    file_params = "text_"+str(prep)+"_"+str(code)
+    file_name = path+"text_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
     output = []
     #breakpoint()
-    for f in listdir(path):
-        if file_params in getFilename(f):
-            with open(file_name, mode=p.pathExists(file_name), newline='', encoding= 'utf8') as dictFile:
-                reader = csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                for row in reader:
-                    i = 0
-                    for nr in row:
-                        row[i] = int(nr)
-                        i += 1
-                    output.append(row)
+
+    with open(file_name, mode=p.pathExists(file_name), newline='', encoding= 'utf8') as dictFile:
+        reader = csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        for row in reader:
+            i = 0
+            for nr in row:
+                row[i] = int(float(nr))
+                i += 1
+            output.append(row)
 
     ## output like [[dat1text1],[dat2text1],[dat2text2]...] -> no difference 
     return output
@@ -289,27 +296,51 @@ text, cat = readFile(input_file, training)
 # define category if trainingsdata
 if training:
     cat = category(cat, topic_dic_file)
-    cat = loadCat(topic_file, preproc,coding)+ cat
-    if not final_set:
-        saveCat(topic_file, cat,  preproc,coding)
+# deleted cause right now save is needed
+#    if not final_set:
+    saveCat(topic_file, cat,  preproc,coding, file_name)
 
 # call function wordcut + preprocessing
 analysed_text = textAna(text,preproc,dic_file,training, word_max)
 
 
+# TODO: change that in final set no save needed 
+saveData(save_file_dir,list(analysed_text), preproc, coding, file_name)
+
 if final_set: 
-    #breakpoint()
-    save_data = loadData(save_file_dir, preproc, coding)
-    if save_data:
-        analysed_text.insert(0,save_data)
-    if preproc == 3:
-        analysed_text = texAnaTfIdf(analysed_text,dic_file,bar)
+    final_output = []
+    # adding categories
+    #check how many files will be transformed
+    # TODO: maybe count in config
+    # load categoryfile
+    cats = loadCat(topic_file,preproc,coding)
+    # define file_parameter
     
-    final_output = encodingTyp(analysed_text, coding, dictLen(dic_file),word_max)
+    file_parameter = "text_"+str(preproc)+"_"+str(coding)
+
+    for f in listdir(save_file_dir):
+        g = getFilename(f)
+        if file_parameter in g:
+            # load textfile
+            texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
+            if preproc == 3:
+                texts = texAnaTfIdf(analysed_text,dic_file,bar)
+            
+            f_o=encodingTyp(texts, coding, dictLen(dic_file),word_max) 
+            
+            # add category, TODO: can be better
+            for row in cats:
+                if row[0] in g:
+                    i = 0
+                    for element in row[1:]:
+                        f_o[i].insert(0,element)
+                        i += 1
+                    break
+            final_output += (f_o)
+
     saveData(out_file_dir,final_output, preproc, coding, "")
 
-else:
-    saveData(save_file_dir,list(analysed_text), preproc, coding, file_name)
+
 
 # ending, saves necessary data for next launch
 # updating values
