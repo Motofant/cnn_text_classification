@@ -328,16 +328,19 @@ if final_set:
             
             f_o=encodingTyp(texts, coding, dictLen(dic_file),word_max) 
             
+
             # add category, TODO: can be better
             for row in cats:
                 if row[0] in g:
                     i = 0
                     for element in row[1:]:
+                        # fix size 
+                        
                         f_o[i].insert(0,element)
+                        f_o[i] = p.fillText(f_o[i], word_max+1)
                         i += 1
                     break
             final_output += (f_o)
-
     saveData(out_file_dir,final_output, preproc, coding, "")
 
 
