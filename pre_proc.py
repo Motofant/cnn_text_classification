@@ -174,11 +174,15 @@ def dictionary(path,word_arr, training, text_length):
     # update TEXT_CT
     global TEXT_CT
     TEXT_CT += 1  
-
+    '''
     # bring Text to standart size
     num_arr_fixsize = fillText(num_arr,text_length)
 
     return num_arr_fixsize
+    '''
+    # fixed size throws problems with tfidf
+    return num_arr
+
 
 def cutWord(text,modus): 
     # text: newsarticle 
@@ -257,7 +261,7 @@ def oneHot(num_arr, l_size, o_size):
         word_to_vec = np.vstack((word_to_vec, w_vec))
         i += 1
 
-    print(np.shape(word_to_vec))
+    #print(np.shape(word_to_vec))
 
     # returns array of arrays like: ([0,1,0,0],[1,0,0,0],...)
     # see: https://numpy.org/doc/stable/reference/generated/numpy.vstack.html
