@@ -7,9 +7,12 @@ from keras.layers import MaxPooling1D, Dense, Dropout, Flatten, Conv2D, Conv1D, 
 import csv
 import pandas as pd 
 import pre_proc as p
+import keras.optimizers as ko
 import sys
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import sklearn.model_selection as sms
+
 
 tf.compat.v1.disable_eager_execution() # thanks to anugrahasinha, https://github.com/tensorflow/tensorflow/issues/38503
 
@@ -75,7 +78,6 @@ def readDataFile(infile, training, one_hot):
 
 
 
-
 ## import data, size is constant -> pd or np can be used
 ## inputdesign: if trainingsdata -> row[0] = classencoding (needs to be transformed in oH)
 
@@ -127,19 +129,48 @@ k = input_categories
 
 inp = keras.Input(nn_input_size)
 outz = keras.utils.to_categorical(k,cat_size)
-print(outz)
+#print(input_text)
+#print(outz)
 model = Sequential()
 #model = keras.Model(inp, [out_0,out_1,out_2,out_3,out_4,out_5,out_6,out_7,out_8])
 #model = keras.Model(inp,np.array(k))
-model.add(Conv1D(64,3,input_shape=(1200,1), activation="tanh",padding="valid"))
+model.add(Conv1D(64,3,input_shape=(1200,1),activation="relu",padding="valid"))
+
 model.add(MaxPooling1D(2,data_format="channels_first"))
-model.add(Conv1D(64,3, activation="tanh",padding="valid"))
+model.add(keras.layers.BatchNormalization())
+#model.add(Dropout(0.5))
+
+model.add(Conv1D(64,3, activation="relu",padding="valid"))
+model.add(MaxPooling1D(pool_size = 2))
+model.add(keras.layers.BatchNormalization())
+#model.add(Dropout(0.5))
+
+model.add(Conv1D(64,3, activation="relu",padding="valid"))
 model.add(MaxPooling1D(2,data_format="channels_first"))
-model.add(Conv1D(64,3, activation="tanh",padding="valid"))
-#model.add(MaxPooling1D(2,data_format="channels_first"))
-model.add(GlobalMaxPooling1D(data_format="channels_first"))
+model.add(keras.layers.BatchNormalization())
+#model.add(Dropout(0.5))
+
+model.add(Conv1D(64,3, activation="relu",padding="valid"))
+model.add(MaxPooling1D(2,data_format="channels_first"))
+model.add(keras.layers.BatchNormalization())
+#model.add(Dropout(0.5))
+
+model.add(Conv1D(64,3, activation="relu",padding="valid"))
+model.add(MaxPooling1D(2,data_format="channels_first"))
+model.add(keras.layers.BatchNormalization())
+#model.add(Dropout(0.5))
+
+model.add(Conv1D(64,3, activation="relu",padding="valid"))
+model.add(MaxPooling1D(2,data_format="channels_first"))
+model.add(keras.layers.BatchNormalization()) # nötig, damit nicht 0,1111
+#model.add(Dropout(0.5))
+
+#model.add(GlobalMaxPooling1D())
+
+model.add(keras.layers.Flatten())
 model.add(Dropout(0.5)) #ony for testing needed -> for limited datasets
 model.add(Dense(9, activation="softmax"))
+
 
 
 '''
@@ -174,27 +205,28 @@ out_8 = Dense(1, activation="sigmoid")(x)
 
 
 ## Mach zeugs
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'],experimental_run_tf_function=False)
+model.compile( loss='mean_squared_error', optimizer="adam", metrics=['accuracy'],experimental_run_tf_function=False)
 print("compiled succesfully")
+
 #model.fit(x = input_text,y =[k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7],k[8]],epochs=50, batch_size=450)
-history =model.fit(x = input_text,y =outz,epochs=20, batch_size=450)
+history =model.fit(x = input_text,y =outz,shuffle = True,epochs=20, batch_size=10)
 #history = model.fit(x = input_text,y =[np.array(k[0]),np.array(k[1]),np.array(k[2]),np.array(k[3]),np.array(k[4]),np.array(k[5]),np.array(k[6]),np.array(k[7]),np.array(k[8])],epochs=50, batch_size=450)
 
 model.summary()
 ## output
 
 accuracy = model.evaluate(input_text,outz)
-print('Accuracy: %.2f' % (accuracy*100))
-
+#print('Accuracy: %.2f' % (accuracy*100))
+print(accuracy)
 predictions = model.predict(input_text)
 for i in range(5):
 #print(input_text.tolist())
-    print("prediction: ")
-    print(predictions[i])
-    print("real")
-    print(outz[i])
+     print("prediction: ")
+     print(predictions[i])
+     print("real")
+     print(outz[i])
 
-print(history.history.keys())
+#print(history.history.keys())
 
 
 
@@ -215,7 +247,7 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['dense_accuracy'], loc='lower right')
-#plt.show()
+plt.show()
 
 # summarize history for loss
 plt.plot(history.history['loss'])
@@ -231,4 +263,4 @@ plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['dense_loss'], loc='upper right')
-#plt.show()
+plt.show()
