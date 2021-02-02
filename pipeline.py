@@ -351,4 +351,4 @@ config_input[0] = text_count
 saveShutdown(loaded_config,config_input)
 
 
-## Testing
+## starting neural Network -> no save needed, watch for correct inputtype
