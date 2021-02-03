@@ -14,7 +14,7 @@ from os import path,listdir
 # inputtyp
 training = False
 config_load = False
-just_encode = True
+just_encode = False
 
 # networkvar TODO: add to ini
 text_vec_l = 1200
@@ -53,7 +53,7 @@ save_file_dir = './save/'
 out_file_dir = './output/'
 
 # NNfiles
-weight_save = "./save/weight/weight.h5"
+weight_save = "./weight/weight.h5"
 
 # file name (used for creating saves and outputs)
 file_name = ""
@@ -375,10 +375,12 @@ if final_set:
         model.load_weights(weight_save)
 
     model.summary()
-
+    #final_output = np.asarray(final_output)
     # adjust input
-    in_text = np.array(final_output).reshape((int(final_output.shape[0]/text_vec_l),text_vec_l,word_vec_l)) 
-    
+    cats = [sublist[0] for sublist in final_output]
+    long_list = [item for sublist in final_output for item in sublist[1:]]
+    in_text = np.reshape(long_list,(int(len(long_list)/text_vec_l),text_vec_l,word_vec_l)) 
+
     if training:
         valid_class = keras.utils.to_categorical(cats,class_number)
         history =model.fit(x = in_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
