@@ -62,12 +62,16 @@ def fillText(num_arr, text_l):
     # shortens/extends ordinal encoded text
     # num_arr: text in indexform, wird auf größe aufgepummt
     # text_l: größe die der Text am ende haben soll
+    out_arr = num_arr[:text_l]+[0] * (text_l - len(num_arr))
+    '''
     if text_l > len(num_arr):
         out_arr=np.hstack((num_arr,np.zeros(text_l-len(num_arr))))
     elif text_l < len(num_arr):
         out_arr = num_arr[:text_l]
     else: 
         return np.asarray(num_arr)
+    '''
+    
     return out_arr
 
 # used for categorizing as well
@@ -211,15 +215,10 @@ def cutWord(text,modus):
             if token.pos_ != "PUNCT" and token.pos_ != "SYM" and token.lemma_ != '\n':
                 x = token.lemma_.replace('. . . ',' ')
 
-                # remove capitalized beginning of sentence if needed
-                if token.pos_ != "NOUN":
-                    #y.append(token.lemma_.lower())
-                    y.append(x.lower())
-                else:
-                    #y.append(token.lemma_)
-                    y.append(x)
-        #print(y)
-        return y
+                # remove capitalized beginning
+                y.append(x.lower())
+        
+        return y, 0
 
 # TODO: change l_size to TEXT_SIZE
 def bagOfWords(num_arr, l_size):
@@ -367,20 +366,17 @@ def tfIdf(input_arr, path, bound, doc_count):
 def wordTyp(text):
     output = []
     for token in text: 
-        if token.pos_ == "NOUN":
-            output.append(token.lemma_)
-        elif token.pos_ == "VERB":
+        if token.pos_ == "NOUN" or token.pos_ == "VERB":
             output.append(token.lemma_.lower())
-    return output
+
+    return output, len(output)
 
 def grammer(text):
     output = []
     for token in text: 
         if (token.pos_ == "NOUN" or token.pos_ == "VERB") and (token.dep_ == "sb" or token.dep_ == "pd" or token.dep_ == "ROOT"):
-            if token.pos_ != "NOUN":
                 output.append(token.lemma_.lower())
-            else: output.append(token.lemma_)
-    return output
+    return output, len(output)
 
 
 """

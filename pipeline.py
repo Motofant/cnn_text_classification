@@ -1,20 +1,31 @@
 import pre_proc as p
 import configtry as c
+import categorisation_cnn as cc
 import numpy as np
+import keras
 import csv
 import sys
 from os import path,listdir
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
+
 #### variables
+#region
 # inputtyp
 training = False
 config_load = False
+just_encode = True
+
+# networkvar TODO: add to ini
+text_vec_l = 1200
+word_vec_l = 1 
+load_nn = True
+class_number = 9
 # number of all texts
 text_count = 0
 # max words in text
-word_max = 50 # used for one hot -> fill word 
-bar = 0
+word_max = 1200 # used for one hot -> fill word 
+bar = .50
 #word in dictionary -> only for testingpurposes
 #dict_size = 0
 # Preprocessing
@@ -41,8 +52,13 @@ dict_file_dir = './dictionary/'
 save_file_dir = './save/'
 out_file_dir = './output/'
 
+# NNfiles
+weight_save = "./save/weight/weight.h5"
+
 # file name (used for creating saves and outputs)
 file_name = ""
+
+#endregion
 
 # create new stuff
 def newProfil(config, name, data):
@@ -104,9 +120,19 @@ def readFile(in_file, train):
 def textAna(text_in, prep_mode, dictio, train, text_len):
     preproc_out = []
 
-
-    for text in text_in:
-        preproc_out.append(p.dictionary(dictio,p.cutWord(text,prep_mode), train, text_len))
+    if prep_mode == 1 or prep_mode == 2:
+        for text in text_in:
+            txt, num = p.cutWord(text,prep_mode)
+            preproc_out.append(p.dictionary(dictio,txt, train, text_len))
+            if num > text_len: 
+                    global word_max
+                    word_max = num
+    else:
+        for text in text_in:
+            txt, num = p.cutWord(text,prep_mode)
+            preproc_out.append(p.dictionary(dictio,txt, train, text_len))
+        
+            
     return preproc_out
 
 def texAnaTfIdf(text_in,dictio,border):
@@ -129,20 +155,19 @@ def encodingTyp(arr_in, code, dict_len, text_l):
             coding_out = np.vstack((coding_out,p.bagOfWords(text, dict_len)))
     else:
         # not Bag of word -> fix size manualy
- #        y = []
-
- #        for text in arr_in:
- #            y.append(text)
+        y = []
+        for text in arr_in:
+            y.append(p.fillText(text,text_l))
         if code == 2:
             #breakpoint()
-            coding_out = np.array([p.oneHot(arr_in[0],dict_len,text_l)])
-            for text in arr_in[1:]:
+            coding_out = np.array([p.oneHot(y[0],dict_len,text_l)])
+            for text in y[1:]:
                 coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,text_l)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
         else:
         # no modification to encoding ->  ordinal encoding
-            return arr_in
+            return y
     
-    return coding_out
+    return coding_out.tolist()
 
 def category(cat_in, topic_file):
     y =[]
@@ -233,12 +258,12 @@ def loadConfig(config_name):
     return x
 
 
-
 #####################
 ### Pipeline
 #####################
 
 # Commandline
+#region
 # shortest input: pipeline.py inputfile (default config, final input, testingset)
 # longest input: pipeline.py config -t -n inputfile (Input not final, trainingset)
 length =len(sys.argv)
@@ -274,6 +299,8 @@ for arg in sys.argv:
         continue
     else:
         loaded_config = arg
+
+#endregion
 
 # check validity of File and config
 if not c.existProf("test.ini",loaded_config):
@@ -315,38 +342,64 @@ if final_set:
     # load categoryfile
     cats = loadCat(topic_file,preproc,coding)
     # define file_parameter
-    
     file_parameter = "text_"+str(preproc)+"_"+str(coding)
 
     for f in listdir(save_file_dir):
         g = getFilename(f)
+
         if file_parameter in g:
             # load textfile
             texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
             if preproc == 3:
                 texts = texAnaTfIdf(analysed_text,dic_file,bar)
-            
-            f_o=encodingTyp(texts, coding, dictLen(dic_file),word_max) 
-            
-
+            f_o= encodingTyp(texts, coding, dictLen(dic_file),word_max)
             # add category, TODO: can be better
             for row in cats:
                 if row[0] in g:
+                    
                     i = 0
-                    for element in row[1:]:
-                        # fix size 
-                        
-                        f_o[i].insert(0,element)
-                        f_o[i] = p.fillText(f_o[i], word_max+1)
+                    for element in row[1:]:                      
+                        f_o[i].insert(0, element)
                         i += 1
-                    break
-            final_output += (f_o)
-    saveData(out_file_dir,final_output, preproc, coding, "")
 
+            final_output += f_o
+    if just_encode:
+        saveData(out_file_dir,final_output, preproc, coding, "")
+        config_input[0] = text_count
+        saveShutdown(loaded_config,config_input)
+        exit()
+                
+    #start neural network
+    model = cc.newNetwork((text_vec_l,word_vec_l))
+    if load_nn:
+        model.load_weights(weight_save)
 
+    model.summary()
+
+    # adjust input
+    in_text = np.array(final_output).reshape((int(final_output.shape[0]/text_vec_l),text_vec_l,word_vec_l)) 
+    
+    if training:
+        valid_class = keras.utils.to_categorical(cats,class_number)
+        history =model.fit(x = in_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
+        model.save_weights(weight_save)
+
+        #accuracy = model.evaluate(in_text,valid_class)
+        #print(accuracy)
+        
+        cc.visualHist(history)    
+    else:
+        prediction = model.predict(in_text)    
+
+        # TODO: change
+        for i in range(5):
+            print(valid_class[i])
+            print(prediction[i])
+            i += 1
 
 # ending, saves necessary data for next launch
 # updating values
+config_input[3] = word_max
 config_input[0] = text_count
 saveShutdown(loaded_config,config_input)
 

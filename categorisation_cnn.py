@@ -33,8 +33,9 @@ load_nn = False
 input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttwo_t.csv"# ordinal encoded input
 input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttest.csv"# ordinal encoded input
 
-model_save = "./save/model/model.h5"
-weight_save = "./save/weight/weight.h5"
+model_save = "./model/model.h5"
+weight_save = "./weight/weight.h5"
+weight_save = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/weight/weight.h5"
 
 
 
@@ -43,7 +44,7 @@ one_hot = False
 
 # inputparams
 Text_length = 1200 # also bowlength
-word_vec_length = 1 # only not zero in oneHot
+word_vec_length = 1 # only not 1 in oneHot
 
 cat_size = 9
 
@@ -130,17 +131,17 @@ def newNetwork(in_shape):
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
 
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
 
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
 
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization()) # nötig, damit nicht 0,1111
     #model.add(Dropout(0.5))
@@ -151,14 +152,14 @@ def newNetwork(in_shape):
     model.add(Dropout(0.5)) #ony for testing needed -> for limited datasets
     model.add(Dense(9, activation="softmax"))
 
-    model.compile( loss='categorical_crossentropy', optimizer="sgd", metrics=['accuracy'],experimental_run_tf_function=False)
+    model.compile( loss='categorical_crossentropy', optimizer="adam", metrics=['accuracy'],experimental_run_tf_function=False)
     print("compiled succesfully")
 
     return model
 #endregion
 
 #### "Pipeline" ####
-
+'''
 # define vectors
 input_text = []
 valid_class = []
@@ -187,7 +188,7 @@ model.summary()
 if training:
     ## training -> save weights in the end -> non result needed
         ### TODO: change epoches/batchsize ? 
-    history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=2, batch_size=10)
+    history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
         ### TODO: show accc improvement? 
         ### update weights
     model.save_weights(weight_save)
@@ -205,3 +206,4 @@ else:
 
 
         ### TODO: Show results
+'''
