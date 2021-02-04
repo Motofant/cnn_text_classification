@@ -14,7 +14,7 @@ from os import path,listdir
 # inputtyp
 training = False
 config_load = False
-just_encode = False
+just_encode = True
 
 # networkvar TODO: add to ini
 text_vec_l = 1200
@@ -363,12 +363,14 @@ if final_set:
                         i += 1
 
             final_output += f_o
+    #breakpoint()
     if just_encode:
         saveData(out_file_dir,final_output, preproc, coding, "")
         config_input[0] = text_count
         saveShutdown(loaded_config,config_input)
+        print("done")
         exit()
-                
+    '''            
     #start neural network
     model = cc.newNetwork((text_vec_l,word_vec_l))
     if load_nn:
@@ -398,7 +400,7 @@ if final_set:
             print(valid_class[i])
             print(prediction[i])
             i += 1
-
+    '''
 # ending, saves necessary data for next launch
 # updating values
 config_input[3] = word_max

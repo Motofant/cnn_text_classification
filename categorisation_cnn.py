@@ -10,6 +10,8 @@ import keras.optimizers as ko
 import sys
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import logging # TODO
+from texttable import Texttable
 #import sklearn.model_selection as sms
 
 
@@ -21,17 +23,19 @@ tf.compat.v1.disable_eager_execution() # to prevent tf-bug with inputdata (anugr
 #region
 # Pipelinevariables
 ## already in pipeline-> not needed when porting
-training = True
+training = False
 
 
 ## new variables
 data_from_file = True
-load_nn = False
+load_nn = True
 
+classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
 
 # necessary for current version
 input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttwo_t.csv"# ordinal encoded input
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttest.csv"# ordinal encoded input
+#input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttest.csv"# ordinal encoded input
+input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/text_0_0_.csv"
 
 model_save = "./model/model.h5"
 weight_save = "./weight/weight.h5"
@@ -63,6 +67,17 @@ def setShape(vec_length, word_rep_length):
     # vec_lec: length of vector representing the entire text (bow -> lex_size/ other -> text_size) 
     # word_rep_length: length of vector representing a single word (if not one-Hot -> 1)
     return(vec_length,word_rep_length)
+
+def showResult(prediction, classes):
+    table = Texttable()
+    table.set_cols_dtype(["t","f"])
+    table.add_row(["Class", "Percantage\nin %"])
+    i = 0
+    for element in classes:
+        table.add_row([element, prediction[i]*100])
+        i += 1 
+
+    return table 
 
 def readFile(infile, train, text_l, word_l,cat_size):
     input_text = []
@@ -130,7 +145,7 @@ def newNetwork(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
-
+    
     model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
@@ -140,12 +155,12 @@ def newNetwork(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
-
+    
     model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization()) # nötig, damit nicht 0,1111
     #model.add(Dropout(0.5))
-
+    
     #model.add(GlobalMaxPooling1D())
 
     model.add(keras.layers.Flatten())
@@ -159,7 +174,7 @@ def newNetwork(in_shape):
 #endregion
 
 #### "Pipeline" ####
-'''
+
 # define vectors
 input_text = []
 valid_class = []
@@ -188,7 +203,7 @@ model.summary()
 if training:
     ## training -> save weights in the end -> non result needed
         ### TODO: change epoches/batchsize ? 
-    history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
+    history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=50, batch_size=10)
         ### TODO: show accc improvement? 
         ### update weights
     model.save_weights(weight_save)
@@ -197,13 +212,11 @@ if training:
     visualHist(history)
 else:
     ## test -> no save requiered (no weight updates) -> Show result
-    predictions = model.predict(input_text[:5])
-    
-    for i in range(5):
-        print(valid_class[i])
-        print(predictions[i])
-        i += 1
-
+    predictions = model.predict(input_text)
+        #print(valid_class[)
+    print(predictions)
+    # TODO: check if multiple texts as input
+    for i in predictions:
+        print(showResult(i, classes).draw())
 
         ### TODO: Show results
-'''
