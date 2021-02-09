@@ -15,17 +15,18 @@ from os import path,listdir
 training = False
 config_load = False
 just_encode = True
-
+# TODO: change classes from read topics
+classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
 # networkvar TODO: add to ini
 text_vec_l = 1200
 word_vec_l = 1 
-load_nn = True
+load_nn = False
 class_number = 9
 # number of all texts
 text_count = 0
 # max words in text
 word_max = 1200 # used for one hot -> fill word 
-bar = .50
+bar = 0.001477
 #word in dictionary -> only for testingpurposes
 #dict_size = 0
 # Preprocessing
@@ -44,7 +45,7 @@ loaded_config = "def"
 
 # files
 
-dic_file = 'C:/Users/Erik/Desktop/dictionary.csv'
+dic_file = './dictionary/def_dictionary.csv'
 topic_dic_file = './dictionary/kat.csv'
 topic_file = './save/'
 input_file = 'C:/Users/Erik/Desktop/check.csv'
@@ -94,7 +95,10 @@ def dictLen(path):
 def getFilename(input_path):
     return path.splitext(path.basename(input_path))[0]
 
-# actually relevant to Pipeline
+def calcUnknownWords():
+    pass
+
+# actually relevant for Pipeline
 def readFile(in_file, train):
     file_in = []
     category = []
@@ -135,12 +139,12 @@ def textAna(text_in, prep_mode, dictio, train, text_len):
             
     return preproc_out
 
-def texAnaTfIdf(text_in,dictio,border):
+def texAnaTfIdf(text_in,dictio,border,text_number):
     # TODO: Test if working for single text
     preproc_out = []  
 
     for text in text_in:
-        preproc_out.append(list(p.tfIdf(text,dictio, border, 500)))
+        preproc_out.append(list(p.tfIdf(text,dictio, border, text_number)))
 
     return preproc_out
 
@@ -351,7 +355,8 @@ if final_set:
             # load textfile
             texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
             if preproc == 3:
-                texts = texAnaTfIdf(analysed_text,dic_file,bar)
+                texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
+                #breakpoint()
             f_o= encodingTyp(texts, coding, dictLen(dic_file),word_max)
             # add category, TODO: can be better
             for row in cats:
@@ -370,7 +375,7 @@ if final_set:
         saveShutdown(loaded_config,config_input)
         print("done")
         exit()
-    '''            
+               
     #start neural network
     model = cc.newNetwork((text_vec_l,word_vec_l))
     if load_nn:
@@ -379,11 +384,17 @@ if final_set:
     model.summary()
     #final_output = np.asarray(final_output)
     # adjust input
-    cats = [sublist[0] for sublist in final_output]
-    long_list = [item for sublist in final_output for item in sublist[1:]]
+    # TODO: make better
+    cats = []
+    if training:
+        cats = [sublist[0] for sublist in final_output]
+        long_list = [item for sublist in final_output for item in sublist[1:]]
+    else:
+        long_list = [item for sublist in final_output for item in sublist]
     in_text = np.reshape(long_list,(int(len(long_list)/text_vec_l),text_vec_l,word_vec_l)) 
 
     if training:
+        #breakpoint()
         valid_class = keras.utils.to_categorical(cats,class_number)
         history =model.fit(x = in_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
         model.save_weights(weight_save)
@@ -396,11 +407,10 @@ if final_set:
         prediction = model.predict(in_text)    
 
         # TODO: change
-        for i in range(5):
-            print(valid_class[i])
-            print(prediction[i])
+        for i in prediction:
+            print(cc.showResult(i,classes).draw())
             i += 1
-    '''
+    
 # ending, saves necessary data for next launch
 # updating values
 config_input[3] = word_max

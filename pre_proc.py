@@ -268,6 +268,7 @@ def oneHot(num_arr, l_size, o_size):
 
 
 # TODO: only takes in single word, more efficient when list gets transformed in one go -> problems when single word
+    # UPDATE: texts are currently filtered before running this programm
 def topic(category, path):
     # category: string, transformed into number
     # path: path, where dictionary with categories lies
@@ -356,8 +357,8 @@ def tfIdf(input_arr, path, bound, doc_count):
         output[2][i] = output[0][i] * output[1][i]
         if output[2][i] > bound:
             transf_arr = np.append(transf_arr,input_arr[i])
-        i += 1
-        
+        i += 1  
+    #breakpoint()
     # if deleting of values is outsourced 
     #return np.vstack((input_arr,output[2]))
     return transf_arr.astype(int)

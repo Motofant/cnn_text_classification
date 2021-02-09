@@ -174,7 +174,7 @@ def newNetwork(in_shape):
 #endregion
 
 #### "Pipeline" ####
-
+'''
 # define vectors
 input_text = []
 valid_class = []
@@ -220,3 +220,4 @@ else:
         print(showResult(i, classes).draw())
 
         ### TODO: Show results
+'''
