@@ -6,6 +6,7 @@ import keras
 import csv
 import sys
 from os import path,listdir
+import logging
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 
@@ -123,20 +124,22 @@ def readFile(in_file, train):
 
 def textAna(text_in, prep_mode, dictio, train, text_len):
     preproc_out = []
-
-    if prep_mode == 1 or prep_mode == 2:
-        for text in text_in:
-            txt, num = p.cutWord(text,prep_mode)
-            preproc_out.append(p.dictionary(dictio,txt, train, text_len))
-            if num > text_len: 
-                    global word_max
-                    word_max = num
-    else:
-        for text in text_in:
-            txt, num = p.cutWord(text,prep_mode)
-            preproc_out.append(p.dictionary(dictio,txt, train, text_len))
+    total_text = []
+    # TODO -> read dictionary in before
+    # Cut texts up in Lists of words
+    for text in text_in:
+        txt, num = p.cutWord(text,prep_mode)
+        total_text.append(txt)
         
-            
+        # check if text longer then the ones before 
+        if (prep_mode == 1 or prep_mode == 2) and num > text_len: 
+            global word_max
+            word_max = num
+
+    # encode text with dictionary
+    # TODO check output 
+    preproc_out = p.dictionary(dictio,total_text, train, text_len)
+         
     return preproc_out
 
 def texAnaTfIdf(text_in,dictio,border,text_number):
@@ -405,7 +408,7 @@ if final_set:
         cc.visualHist(history)    
     else:
         prediction = model.predict(in_text)    
-
+        categories = cc.setCats(topic_dic_file)
         # TODO: change
         for i in prediction:
             print(cc.showResult(i,classes).draw())

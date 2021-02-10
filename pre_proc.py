@@ -3,6 +3,7 @@ import string
 import numpy as np
 import time
 import spacy
+from spacy.lang.de.stop_words import STOP_WORDS
 import csv
 import os.path # check file existence
 import math
@@ -75,6 +76,7 @@ def fillText(num_arr, text_l):
     return out_arr
 
 # used for categorizing as well
+'''
 def dictionary_old(path,word_arr):
     word_dict=[]
     num_arr=[]
@@ -113,12 +115,13 @@ def dictionary_old(path,word_arr):
         for word in word_dict:
             writer.writerow([word])  
     return num_arr
-
-def dictionary(path,word_arr, training, text_length):
+'''
+def dictionary(path, tot_text, training, text_length):
     # returns fixedsized numberarray
     word_dict=[[],[]]
     num_arr=[]
-
+    
+    # Read dictionary
     ## check if file exists
     with open(path, mode=pathExists(path), newline='') as dictFile:
         
@@ -136,33 +139,42 @@ def dictionary(path,word_arr, training, text_length):
                 #pass   
             #print("Completed reading")
 
+    for word_arr in tot_text:
+        
+        encoded_text = []
     ## write info in word_dict
-    if training:
-        for word in word_arr:
-            if not word in word_dict[0]: 
-                word_dict[0].append(word)
-                word_dict[1].append(0)          # get's counted later       
-            num_arr.append(word_dict[0].index(word))
+        if training:
+            for word in word_arr:
+                if not word in word_dict[0]: 
+                    word_dict[0].append(word)
+                    word_dict[1].append(0)          # get's counted later       
+                encoded_text.append(word_dict[0].index(word))
 
-    else: 
-        # new word in Testingdata
-        for word in word_arr:
-            if not word in word_dict[0]: 
-                # 1 = doesn't exist in dictionary
-                num_arr.append(1)
-                continue
-            num_arr.append(word_dict[0].index(word))
+        else: 
+            # new word in Testingdata
+            for word in word_arr:
+                if not word in word_dict[0]: 
+                    # 1 = doesn't exist in dictionary
+                    encoded_text.append(1)
+                    continue
+                encoded_text.append(word_dict[0].index(word))
 
-    # lexsize has to be saved regardless wether training data or not    
-    global lex_size 
-    lex_size = len(word_dict[0])
+        # lexsize has to be saved regardless wether training data or not    
+        global lex_size 
+        lex_size = len(word_dict[0])
 
-    ## calculating doc freq
-    i = 0
-    while i < len(word_dict[0]):
-        if i in num_arr:
-            word_dict[1][i] = int(word_dict[1][i])+1                
-        i +=1
+        ## calculating doc freq
+        i = 0
+        while i < len(word_dict[0]):
+            if i in encoded_text:
+                word_dict[1][i] = int(word_dict[1][i])+1                
+            i +=1
+
+        num_arr.append(encoded_text)
+
+        # update TEXT_CT
+        global TEXT_CT
+        TEXT_CT += 1 
 
     ## override dictionary
         ## truncate not final
@@ -175,9 +187,7 @@ def dictionary(path,word_arr, training, text_length):
             #w = word#.encode('utf-8',errors='ignore')
             writer.writerow([word,word_dict[1][i]])
             i += 1 
-    # update TEXT_CT
-    global TEXT_CT
-    TEXT_CT += 1  
+ 
     '''
     # bring Text to standart size
     num_arr_fixsize = fillText(num_arr,text_length)
@@ -189,13 +199,13 @@ def dictionary(path,word_arr, training, text_length):
 
 
 def cutWord(text,modus): 
+    
     # text: newsarticle 
     # modus: preprocessing-typ: 
         # 0: default
         # 1: wordtyp
         # 2: grammer
         # 3: tfidf -> save output of dictionary
-
     # remove punctuation 
     for letter in cleanup:
         text = text.replace(letter, '')
@@ -204,11 +214,18 @@ def cutWord(text,modus):
     doc = nlp(text)
     # cut up text in words
 
+    # remove stopwords to improve speed
+    # TODO: different when custom TF IDF
+    filtered_text = []
+
+    for el in doc:
+        if nlp.vocab[el.text].is_stop == False:
+            filtered_text.append(el)
 
     if modus == 1:
-        return wordTyp(doc)
+        return wordTyp(filtered_text)
     elif modus == 2:
-        return grammer(doc)
+        return grammer(filtered_text)
     else: 
         y = []
         for token in doc:
@@ -218,7 +235,7 @@ def cutWord(text,modus):
                 # remove capitalized beginning
                 y.append(x.lower())
         
-        return y, 0
+        return y, len(y)
 
 # TODO: change l_size to TEXT_SIZE
 def bagOfWords(num_arr, l_size):

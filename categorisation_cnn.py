@@ -68,6 +68,9 @@ def setShape(vec_length, word_rep_length):
     # word_rep_length: length of vector representing a single word (if not one-Hot -> 1)
     return(vec_length,word_rep_length)
 
+def setCats(path):
+    return pd.read_csv(path,header = None)[0].to_numpy()
+
 def showResult(prediction, classes):
     table = Texttable()
     table.set_cols_dtype(["t","f"])
@@ -79,31 +82,16 @@ def showResult(prediction, classes):
 
     return table 
 
-def readFile(infile, train, text_l, word_l,cat_size):
-    input_text = []
-    input_categories = []
+def readFile(input_file, train, text_l, word_l,cat_size):
 
-    with open(input_file, mode = "r", newline = "\n") as text_file:
-        reader = csv.reader(text_file, delimiter= "\t",  quotechar='"', quoting=csv.QUOTE_MINIMAL )
-        i = 0
-        if train:
-
-            for row in reader:
-                input_categories = np.append(input_categories,int(float(row[0])))
-                numbers = []
-                for item in row[1:]:
-                    numbers.append(int(float(item)))
-                input_text= np.append(input_text,numbers)
-                i +=1
-        else:
-            for row in reader:
-                numbers = []
-                for item in row:
-                    numbers.append(int(float(item)))
-                input_text= np.append(input_text,numbers)
-                i +=1
-        
-        return np.array(input_text.reshape((int(input_text.shape[0]/text_l),text_l,word_l))), keras.utils.to_categorical(input_categories,cat_size)
+    if train:
+        in_cat = pd.read_table(input_file,usecols=[0],header = None).to_numpy()
+        in_text = pd.read_table(input_file,usecols=list(range(text_l))[0:],header = None).to_numpy()
+    else:
+        in_cat = []
+        in_text = pd.read_table(input_file,header = None).to_numpy()
+    
+    return  in_text.reshape((in_text.shape[0],text_l,word_l)),keras.utils.to_categorical(in_cat,cat_size)
 
 def visualHist(history):
     
