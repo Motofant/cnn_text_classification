@@ -77,7 +77,7 @@ def fillText(num_arr, text_l):
     return out_arr
 
 # used for categorizing as well
-'''
+
 def dictionary_old(path,word_arr):
     word_dict=[]
     num_arr=[]
@@ -116,7 +116,7 @@ def dictionary_old(path,word_arr):
         for word in word_dict:
             writer.writerow([word])  
     return num_arr
-'''
+
 def dictionary_bef_pd(path, tot_text, training, text_length):
     # returns fixedsized numberarray
     word_dict=[[],[]]
