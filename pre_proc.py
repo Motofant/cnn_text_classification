@@ -7,6 +7,7 @@ from spacy.lang.de.stop_words import STOP_WORDS
 import csv
 import os.path # check file existence
 import math
+import pandas as pd
 
 
 # Ideas, testing and other notes and stuff, TODO: delete before release
@@ -116,7 +117,7 @@ def dictionary_old(path,word_arr):
             writer.writerow([word])  
     return num_arr
 '''
-def dictionary_bef_pan(path, tot_text, training, text_length):
+def dictionary_bef_pd(path, tot_text, training, text_length):
     # returns fixedsized numberarray
     word_dict=[[],[]]
     num_arr=[]
@@ -355,8 +356,9 @@ def oneHot(num_arr, l_size, o_size):
 
 
 # TODO: only takes in single word, more efficient when list gets transformed in one go -> problems when single word
+    # DONE: see topic
     # UPDATE: texts are currently filtered before running this programm
-def topic(category, path):
+def topic_old(category, path):
     # category: string, transformed into number
     # path: path, where dictionary with categories lies
 
@@ -394,6 +396,47 @@ def topic(category, path):
     # out_arr[word_dict.index(category)] = 1
 
     return word_dict.index(category)
+
+def topic(categories, path):
+    # category: string, transformed into number
+    # path: path, where dictionary with categories lies
+
+    # check if categories are in list form. 
+    # Error could accure when there is one Text -> give string 
+    if type(categories) is not list:
+        categories = [categories]
+
+    word_dict= []
+    # Idea for different output, might be an option later
+    out_arr=[]
+    ## check if file exists
+    with open(path, mode=pathExists(path), newline='', encoding='utf8') as dictFile:
+
+        ## check if empty, read if not (empty csv-file -> 2 bytes)
+        #if os.path.getsize(path)>2:
+        try:
+            word_dict = pd.read_table(dictFile,header=None).stack().tolist() 
+        except pd.errors.EmptyDataError:
+            print("No categories in file.")
+
+    for category in categories:
+        if not category in word_dict: 
+            word_dict.append(category)
+        out_arr.append(word_dict.index(category))
+    global kat_size
+    kat_size = len(word_dict)
+    
+    ## override dictionary
+        ## charset NOT UTF-16 (ASCII works for both)
+    with open(path, mode=pathExists(path), newline='',encoding= "utf8") as dictFile:
+        pd.DataFrame(word_dict).to_csv(dictFile, sep= "\t", header = None, index = False)
+
+    # create vector
+    # out_arr = [0]*cat_lex_size
+    # out_arr[word_dict.index(category)] = 1
+
+    #return word_dict.index(category)
+    return out_arr
 
 # only put in header
 def headerTransform(header):

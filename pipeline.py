@@ -176,11 +176,12 @@ def encodingTyp(arr_in, code, dict_len, text_l):
     
     return coding_out.tolist()
 
+# not longer needed
 def category(cat_in, topic_file):
     y =[]
     for cat in cat_in:
         
-        y.append(p.topic(cat,topic_file))
+        y.append(p.topic_old(cat,topic_file))
     return y
 
 # Saving and loading
@@ -329,7 +330,10 @@ text, cat = readFile(input_file, training)
 
 # define category if trainingsdata
 if training:
-    cat = category(cat, topic_dic_file)
+    # Old
+    # cat = category(cat, topic_dic_file)
+    cat = p.topic(cat,topic_dic_file)
+    
 # deleted cause right now save is needed
 #    if not final_set:
     saveCat(topic_file, cat,  preproc,coding, file_name)
