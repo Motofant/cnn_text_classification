@@ -87,7 +87,7 @@ def newDictionary(path, name):
 # helping Function
 def dictLen(path):
     dict_len  = 0 
-    with open(path, mode=p.pathExists(path), newline='') as dictFile:
+    with open(path, mode=p.pathExists(path), newline='',encoding= "utf8") as dictFile:
         reader = csv.reader(dictFile, delimiter='\t', quotechar=',', quoting=csv.QUOTE_MINIMAL)        
         for row in reader:
             dict_len += 1
@@ -333,7 +333,7 @@ if training:
     # Old
     # cat = category(cat, topic_dic_file)
     cat = p.topic(cat,topic_dic_file)
-    
+
 # deleted cause right now save is needed
 #    if not final_set:
     saveCat(topic_file, cat,  preproc,coding, file_name)

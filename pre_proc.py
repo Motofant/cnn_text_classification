@@ -299,7 +299,7 @@ def cutWord(text,modus):
         return grammer(filtered_text)
     else: 
         y = []
-        for token in doc:
+        for token in filtered_text:
             if token.pos_ != "PUNCT" and token.pos_ != "SYM" and token.lemma_ != '\n':
                 x = token.lemma_.replace('. . . ',' ')
 
