@@ -235,10 +235,6 @@ def dictionary(path, tot_text, training, text_length):
                     continue
                 encoded_text.append(word_dict[0].index(word))
 
-        # lexsize has to be saved regardless wether training data or not    
-        global lex_size 
-        lex_size = len(word_dict[0])
-
         ## calculating doc freq
         i = 0
         while i < len(word_dict[0]):
@@ -252,7 +248,9 @@ def dictionary(path, tot_text, training, text_length):
         global TEXT_CT
         TEXT_CT += 1 
 
-
+    # lexsize has to be saved regardless wether training data or not    
+    global lex_size 
+    lex_size = len(word_dict[0])
     pd.DataFrame([word_dict[0],word_dict[1]]).T.to_csv(path, sep= "\t", header = None, index = False)
     #print(pd.DataFrame(word_dict))
     
@@ -284,7 +282,6 @@ def cutWord(text,modus):
 
     doc = nlp(text)
     # cut up text in words
-
     # remove stopwords to improve speed
     # TODO: different when custom TF IDF
     filtered_text = []

@@ -10,6 +10,12 @@ import logging
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 
+## Init logging 
+logging.basicConfig(filename='./log_pipeline.log',format= "%(asctime)s :: %(relativeCreated)d ms :: %(levelname)s :: %(module)s.%(funcName)s :: %(message)s", level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.info("Starting Pipeline")
+
+
 #### variables
 #region
 # inputtyp
@@ -66,6 +72,7 @@ file_name = ""
 def newProfil(config, name, data):
     # check wether profil  allready exits
     if c.existProf(config,name):
+        logging.warning("Profilname already used")
         return "Cant create Profil, because it allready exists."
     else:
         # set data to False, if settings not closer defiend
@@ -103,6 +110,7 @@ def calcUnknownWords():
 def readFile(in_file, train):
     file_in = []
     category = []
+    logger.info("Start reading Inputfile")
     with open(in_file, mode=p.pathExists(in_file), newline='', encoding= 'utf8') as dictFile:
         reader = csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         # TODO: Nicht schön 
@@ -120,9 +128,11 @@ def readFile(in_file, train):
     # TODO: maybe change to array instead of keeping extra variables
     global text_count
     text_count += len(file_in)
+    logger.info("Inputfile reading concluded")
     return file_in,category#, len(file_in)
 
 def textAna(text_in, prep_mode, dictio, train, text_len):
+    logger.info("general extanalysis starting")
     preproc_out = []
     total_text = []
     # TODO -> read dictionary in before
@@ -132,28 +142,35 @@ def textAna(text_in, prep_mode, dictio, train, text_len):
         total_text.append(txt)
         
         # check if text longer then the ones before 
-        if (prep_mode == 1 or prep_mode == 2) and num > text_len: 
+        # TODO: because of stopwords maybe for all
+        #if (prep_mode == 1 or prep_mode == 2) and num > text_len:
+        if num > text_len: 
             global word_max
             word_max = num
 
     # encode text with dictionary
     # TODO check output 
     preproc_out = p.dictionary(dictio,total_text, train, text_len)
-         
+    
+    logger.info("general textanalysis concluded")
     return preproc_out
 
 def texAnaTfIdf(text_in,dictio,border,text_number):
     # TODO: Test if working for single text
     preproc_out = []  
 
+    logger.info("TF IDF started")
+
     for text in text_in:
         preproc_out.append(list(p.tfIdf(text,dictio, border, text_number)))
 
+        logger.info("TF IDF concluded")
     return preproc_out
 
 def encodingTyp(arr_in, code, dict_len, text_l):
     ## Bag of words
     # static size -> fillword not needed
+    logger.info("encoding started")
     if code == 1:
         # NOT DRY (see https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)
 
@@ -173,7 +190,7 @@ def encodingTyp(arr_in, code, dict_len, text_l):
         else:
         # no modification to encoding ->  ordinal encoding
             return y
-    
+    logger.info("encoding concluded")
     return coding_out.tolist()
 
 # not longer needed
@@ -322,7 +339,6 @@ if not path.isfile(input_file):
 file_name = getFilename(input_file)
 
 # load Config, if not defiend use default
-
 config_input = loadConfig(loaded_config)
 
 # read input file 
@@ -375,6 +391,8 @@ if final_set:
                         i += 1
 
             final_output += f_o
+
+    logger.info("Preprocessing finished")
     #breakpoint()
     if just_encode:
         saveData(out_file_dir,final_output, preproc, coding, "")
@@ -403,7 +421,10 @@ if final_set:
     if training:
         #breakpoint()
         valid_class = keras.utils.to_categorical(cats,class_number)
+
+        logger.info("start training")
         history =model.fit(x = in_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
+        logger.info("training done")
         model.save_weights(weight_save)
 
         #accuracy = model.evaluate(in_text,valid_class)
@@ -411,13 +432,16 @@ if final_set:
         
         cc.visualHist(history)    
     else:
+        logger.info("start predictions")
         prediction = model.predict(in_text)    
+        logger.info("predictions done")
         categories = cc.setCats(topic_dic_file)
         # TODO: change
         for i in prediction:
             print(cc.showResult(i,classes).draw())
             i += 1
-    
+
+
 # ending, saves necessary data for next launch
 # updating values
 config_input[3] = word_max
