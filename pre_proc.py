@@ -76,6 +76,12 @@ def fillText(num_arr, text_l):
     
     return out_arr
 
+def fillTextRepeat(num_arr, text_l):
+    i = len(num_arr)
+    j = (text_l % i)
+    output = num_arr * (int(text_l / i)) +num_arr[:j]
+    return output
+
 # used for categorizing as well
 
 def dictionary_old(path,word_arr):
