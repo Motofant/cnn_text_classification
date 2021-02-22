@@ -132,23 +132,27 @@ def readFile(in_file, train):
     return file_in,category#, len(file_in)
 
 def textAna(text_in, prep_mode, dictio, train, text_len):
-    logger.info("general extanalysis starting")
+    logger.info("general textanalysis starting")
     preproc_out = []
     total_text = []
+    length_list = []
     # TODO -> read dictionary in before
     # Cut texts up in Lists of words
     for text in text_in:
         txt, num = p.cutWord(text,prep_mode)
         total_text.append(txt)
-        
+        length_list.append(num)
         # check if text longer then the ones before 
         # TODO: because of stopwords maybe for all
         #if (prep_mode == 1 or prep_mode == 2) and num > text_len:
-        if num > text_len: 
-            global word_max
-            word_max = num
 
+    # update word_max in needed
+    longest_text = max(length_list)
+    if longest_text > text_len: 
+        global word_max
+        word_max = longest_text
     # encode text with dictionary
+
     # TODO check output 
     preproc_out = p.dictionary(dictio,total_text, train, text_len)
     
@@ -361,36 +365,57 @@ analysed_text = textAna(text,preproc,dic_file,training, word_max)
 # TODO: change that in final set no save needed 
 saveData(save_file_dir,list(analysed_text), preproc, coding, file_name)
 
-if final_set: 
+# temp exclusion
+if final_set:
+    # def output list
     final_output = []
-    # adding categories
-    #check how many files will be transformed
-    # TODO: maybe count in config
-    # load categoryfile
-    cats = loadCat(topic_file,preproc,coding)
     # define file_parameter
     file_parameter = "text_"+str(preproc)+"_"+str(coding)
 
-    for f in listdir(save_file_dir):
-        g = getFilename(f)
+    if training:    
+        # adding categories
+        #check how many files will be transformed
+        # TODO: maybe count in config
+        # load categoryfile
+        cats = loadCat(topic_file,preproc,coding)
 
-        if file_parameter in g:
-            # load textfile
-            texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
-            if preproc == 3:
-                texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
-                #breakpoint()
-            f_o= encodingTyp(texts, coding, dictLen(dic_file),word_max)
-            # add category, TODO: can be better
-            for row in cats:
-                if row[0] in g:
-                    
-                    i = 0
-                    for element in row[1:]:                      
-                        f_o[i].insert(0, element)
-                        i += 1
 
-            final_output += f_o
+        for f in listdir(save_file_dir):
+            g = getFilename(f)
+
+            if file_parameter in g:
+                # load textfile
+                texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
+                if preproc == 3:
+                    texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
+                    #breakpoint()
+                f_o= encodingTyp(texts, coding, dictLen(dic_file),word_max)
+                # add category, TODO: can be better
+                for row in cats:
+                    if row[0] in g:
+                        
+                        i = 0
+                        for element in row[1:]:                      
+                            f_o[i].insert(0, element)
+                            i += 1
+
+                final_output += f_o
+    else:
+        # testing data
+        # TODO: extra symbol for test and train
+        # get all files with same encoding
+        for f in listdir(save_file_dir):
+            g = getFilename(f)
+
+            if file_parameter in g:
+                # load textfile
+                texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
+                if preproc == 3:
+                    texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
+                    #breakpoint()
+                f_o= encodingTyp(texts, coding, dictLen(dic_file),word_max)
+
+                final_output += f_o
 
     logger.info("Preprocessing finished")
     #breakpoint()
@@ -401,7 +426,7 @@ if final_set:
         print("done")
         exit()
                
-    #start neural network
+    # starting neural Network -> no save needed, watch for correct inputtype
     model = cc.newNetwork((text_vec_l,word_vec_l))
     if load_nn:
         model.load_weights(weight_save)
@@ -449,4 +474,3 @@ config_input[0] = text_count
 saveShutdown(loaded_config,config_input)
 
 
-## starting neural Network -> no save needed, watch for correct inputtype
