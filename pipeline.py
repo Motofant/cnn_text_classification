@@ -7,6 +7,7 @@ import csv
 import sys
 from os import path,listdir
 import logging
+import pandas as pd
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 
@@ -59,6 +60,7 @@ input_file = 'C:/Users/Erik/Desktop/check.csv'
 dict_file_dir = './dictionary/'
 save_file_dir = './save/'
 out_file_dir = './output/'
+input_directory = './input/'
 
 # NNfiles
 weight_save = "./weight/weight.h5"
@@ -99,6 +101,11 @@ def dictLen(path):
         for row in reader:
             dict_len += 1
     return dict_len
+
+def getAllFiles(directory):
+    all_files = [(directory + f) for f in listdir(directory) if (f.endswith(".csv") or f.endswith(".txt"))]
+    logger.debug("files found: "+str(len(all_files)))
+    return all_files
 
 def getFilename(input_path):
     return path.splitext(path.basename(input_path))[0]
@@ -210,12 +217,14 @@ def saveCat(path, data, prep, code, name):
     file_name = path + "topic_"+str(prep)+"_"+str(code)+".csv"
     
     # including represented file
-    representing = "text_"+str(prep)+"_"+str(code)+"_"+str(name)
+    representing = "train_"+str(prep)+"_"+str(code)+"_"+str(name)
     data.insert(0,representing)
     
     with open(file_name, mode='a', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         writer.writerow(data)
+    
+    return True
 
 def loadCat(path, prep, code):
     file_name = path + "topic_"+str(prep)+"_"+str(code)+".csv"
@@ -230,14 +239,19 @@ def loadCat(path, prep, code):
             out.append(transfer)
     return out
 
-def saveData(path, data, prep, code, name):
+def saveData(path, data, train, prep, code, name):
     # Used when data modified via tf-idf is includeed in multiple sittings 
     # define savefile
-    file_name = path + "text_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
+    if train: 
+        file_name = path + "train_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
+    else: 
+        file_name = path + "test_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
+
     with open(file_name, mode='a+', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         for line in data:
             writer.writerow(line)
+    return 1
 
 def saveShutdown(config_name, saved_states):
     c.saveProf(config_name,saved_states[0],saved_states[1],saved_states[2],saved_states[3],saved_states[4],saved_states[5],saved_states[6])
@@ -249,9 +263,12 @@ def loadValues(path):
         saved_values = list(map(int,savefile.readlines()))
     return saved_values
 
-def loadData(path, prep, code, name ):
+def loadData(path, train, prep, code, name ):
     # get all saved files with same preprocessing and encoding
-    file_name = path+"text_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
+    if train:
+        file_name = path+"train_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
+    else: 
+        file_name = path+"test_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
     output = []
     #breakpoint()
 
@@ -324,55 +341,72 @@ for arg in sys.argv:
         continue
     # Last Element is inputfile
     if arg== sys.argv[-1]:
-        input_file = arg
+        input_directory = arg
         continue
     else:
         loaded_config = arg
 
 #endregion
-
+## Config stuff 
 # check validity of File and config
 if not c.existProf("test.ini",loaded_config):
     print("No valid config, continue with default.")
     loaded_config = "def"
-if not path.isfile(input_file):
-    print("Input file doesn't exist, shutting down.")
+if not path.isdir(input_directory):
+    print("Input directory doesn't exist, shutting down.")
     exit()
-
-# get Filename to create output
-file_name = getFilename(input_file)
 
 # load Config, if not defiend use default
 config_input = loadConfig(loaded_config)
 
-# read input file 
-text, cat = readFile(input_file, training)
+# get all documents in inputdirectory
+input_files = getAllFiles(input_directory)
+n_o_files = len(input_files)
+if n_o_files == 0:
+    print("No files in directory")
+    exit()
 
-# define category if trainingsdata
-if training:
-    # Old
-    # cat = category(cat, topic_dic_file)
-    cat = p.topic(cat,topic_dic_file)
+# do things with all documents
+for input_file in input_files:
+    
 
-# deleted cause right now save is needed
-#    if not final_set:
-    saveCat(topic_file, cat,  preproc,coding, file_name)
-
-# call function wordcut + preprocessing
-analysed_text = textAna(text,preproc,dic_file,training, word_max)
+    # get Filename to create output
+    file_name = getFilename(input_file)
 
 
-# TODO: change that in final set no save needed 
-saveData(save_file_dir,list(analysed_text), preproc, coding, file_name)
+
+    # read input file 
+    text, cat = readFile(input_file, training)
+
+    # define category if trainingsdata
+    if training:
+        # Old
+        # cat = category(cat, topic_dic_file)
+        cat = p.topic(cat,topic_dic_file)
+
+    # deleted cause right now save is needed
+    #    if not final_set:
+        saveCat(topic_file, cat,  preproc,coding, file_name)
+
+    # call function wordcut + preprocessing
+    analysed_text = textAna(text,preproc,dic_file,training, word_max)
+
+
+    # TODO: change that in final set no save needed 
+    saveData(save_file_dir,list(analysed_text), training ,preproc, coding, file_name)
+
+    logger.info(file_name + " finished.")
+    print(file_name + " finished")
 
 # temp exclusion
 if final_set:
     # def output list
     final_output = []
     # define file_parameter
-    file_parameter = "text_"+str(preproc)+"_"+str(coding)
+    
 
-    if training:    
+    if training:
+        file_parameter = "train_"+str(preproc)+"_"+str(coding)    
         # adding categories
         #check how many files will be transformed
         # TODO: maybe count in config
@@ -385,7 +419,7 @@ if final_set:
 
             if file_parameter in g:
                 # load textfile
-                texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
+                texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
                 if preproc == 3:
                     texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
                     #breakpoint()
@@ -402,14 +436,14 @@ if final_set:
                 final_output += f_o
     else:
         # testing data
-        # TODO: extra symbol for test and train
         # get all files with same encoding
+        file_parameter = "test_"+str(preproc)+"_"+str(coding)
         for f in listdir(save_file_dir):
             g = getFilename(f)
 
             if file_parameter in g:
                 # load textfile
-                texts = loadData(save_file_dir,preproc,coding,g.replace("text_"+str(preproc)+"_"+str(coding)+"_",""))
+                texts = loadData(save_file_dir, training, preproc,coding,g.replace("test_"+str(preproc)+"_"+str(coding)+"_",""))
                 if preproc == 3:
                     texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
                     #breakpoint()
@@ -420,7 +454,7 @@ if final_set:
     logger.info("Preprocessing finished")
     #breakpoint()
     if just_encode:
-        saveData(out_file_dir,final_output, preproc, coding, "")
+        saveData(out_file_dir,final_output, training, preproc, coding, "")
         config_input[0] = text_count
         saveShutdown(loaded_config,config_input)
         print("done")
