@@ -22,7 +22,7 @@ logger.info("Starting Pipeline")
 # inputtyp
 training = False
 config_load = False
-just_encode = True
+just_encode = False
 # TODO: change classes from read topics
 classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
 # networkvar TODO: add to ini
@@ -143,6 +143,7 @@ def textAna(text_in, prep_mode, dictio, train, text_len):
     preproc_out = []
     total_text = []
     length_list = []
+
     # TODO -> read dictionary in before
     # Cut texts up in Lists of words
     for text in text_in:
@@ -189,6 +190,8 @@ def encodingTyp(arr_in, code, dict_len, text_l):
         for text in arr_in[1:]:
             coding_out = np.vstack((coding_out,p.bagOfWords(text, dict_len)))
     else:
+        # One Hot only directly before input in NN to avoid big saves
+        '''
         # not Bag of word -> fix size manualy
         y = []
         for text in arr_in:
@@ -199,8 +202,9 @@ def encodingTyp(arr_in, code, dict_len, text_l):
             for text in y[1:]:
                 coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,text_l)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
         else:
+'''
         # no modification to encoding ->  ordinal encoding
-            return y
+        return y
     logger.info("encoding concluded")
     return coding_out.tolist()
 
@@ -451,15 +455,43 @@ if final_set:
 
                 final_output += f_o
 
+    
+
     logger.info("Preprocessing finished")
+    # save before next step
+    saveData(out_file_dir,final_output, training, preproc, coding, "")
     #breakpoint()
     if just_encode:
-        saveData(out_file_dir,final_output, training, preproc, coding, "")
+        
         config_input[0] = text_count
         saveShutdown(loaded_config,config_input)
         print("done")
         exit()
-               
+
+    # prepare data
+
+    # define dictionary length
+    dict_length = p.getDictionaryLength(dic_file)
+    # define n_o_texts
+    n_o_texts = len(final_output)
+
+    # text_vec_l
+    if coding = 1:
+        text_vec_l = dict_length
+    else:
+        text_vec_l = len(final_output[0])
+        if training:
+            text_vec_l -= 1
+
+    # word_vec_l 
+    if coding = 2:
+        word_vec_l = dict_length
+    else:
+        word_vec_l = 1
+
+    
+
+
     # starting neural Network -> no save needed, watch for correct inputtype
     model = cc.newNetwork((text_vec_l,word_vec_l))
     if load_nn:
@@ -470,12 +502,18 @@ if final_set:
     # adjust input
     # TODO: make better
     cats = []
+    breakpoint()
     if training:
         cats = [sublist[0] for sublist in final_output]
         long_list = [item for sublist in final_output for item in sublist[1:]]
     else:
         long_list = [item for sublist in final_output for item in sublist]
-    in_text = np.reshape(long_list,(int(len(long_list)/text_vec_l),text_vec_l,word_vec_l)) 
+
+    # start Onehot encoding 
+    if coding = 2:
+        long_list = keras.utils.to_categorical(long_list,word_vec_l)
+    #in_text = np.reshape(long_list,(int(len(long_list)/text_vec_l),text_vec_l,word_vec_l)) 
+    in_text = np.reshape(long_list,(n_o_texts,text_vec_l,word_vec_l)) 
 
     if training:
         #breakpoint()

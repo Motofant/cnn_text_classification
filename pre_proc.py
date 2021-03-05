@@ -60,6 +60,9 @@ def pathExists(path):
     else: 
         return 'r+'
 
+def getDictionaryLength(path):
+    return len(pd.read_table(path, header=None))
+
 def fillText(num_arr, text_l):
     # shortens/extends ordinal encoded text
     # num_arr: text in indexform, wird auf größe aufgepummt
