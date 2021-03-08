@@ -63,11 +63,14 @@ def pathExists(path):
 def getDictionaryLength(path):
     return len(pd.read_table(path, header=None))
 
-def fillText(num_arr, text_l):
+def fillText(num_arr_total, text_l):
     # shortens/extends ordinal encoded text
     # num_arr: text in indexform, wird auf größe aufgepummt
     # text_l: größe die der Text am ende haben soll
-    out_arr = num_arr[:text_l]+[0] * (text_l - len(num_arr))
+    output = []
+    for num_arr in num_arr_total:
+
+        output.append(num_arr[:text_l]+[0] * (text_l - len(num_arr)))
     '''
     if text_l > len(num_arr):
         out_arr=np.hstack((num_arr,np.zeros(text_l-len(num_arr))))
@@ -77,12 +80,14 @@ def fillText(num_arr, text_l):
         return np.asarray(num_arr)
     '''
     
-    return out_arr
+    return output
 
-def fillTextRepeat(num_arr, text_l):
-    i = len(num_arr)
-    j = (text_l % i)
-    output = num_arr * (int(text_l / i)) +num_arr[:j]
+def fillTextRepeat(num_arr_total, text_l):
+    output = []
+    for num_arr in num_arr_total:      
+        i = len(num_arr)
+        j = (text_l % i)
+        output.append(num_arr * (int(text_l / i)) +num_arr[:j])
     return output
 
 # used for categorizing as well

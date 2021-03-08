@@ -37,6 +37,12 @@ word_max = 1200 # used for one hot -> fill word
 bar = 0.001477
 #word in dictionary -> only for testingpurposes
 #dict_size = 0
+# fix textsize 
+    # 0 = longest Text with new fillword
+    # 1 = shortest Text
+    # 2 = longest Text with repeating text
+fix_size_param = 0
+
 # Preprocessing
     # 0 = no preproc
     # 1 = wordtyp
@@ -155,7 +161,13 @@ def textAna(text_in, prep_mode, dictio, train, text_len):
         #if (prep_mode == 1 or prep_mode == 2) and num > text_len:
 
     # update word_max in needed
+    
     longest_text = max(length_list)
+
+    # if text > 1200 exists  -> gets shorted
+    if longest_text > 1200:
+        longest_text = 1200
+    
     if longest_text > text_len: 
         global word_max
         word_max = longest_text
@@ -179,7 +191,7 @@ def texAnaTfIdf(text_in,dictio,border,text_number):
         logger.info("TF IDF concluded")
     return preproc_out
 
-def encodingTyp(arr_in, code, dict_len, text_l):
+def encodingTyp(arr_in, code, fill_param, dict_len, text_l):
     ## Bag of words
     # static size -> fillword not needed
     logger.info("encoding started")
@@ -188,8 +200,19 @@ def encodingTyp(arr_in, code, dict_len, text_l):
         coding_out = np.array([p.bagOfWords(arr_in[0],dict_len)])
         for text in arr_in[1:]:
             coding_out = np.vstack((coding_out,p.bagOfWords(text, dict_len)))
-    else:
+    elif fill_param == 2:
+        arr_out = p.fillTextRepeat(arr_in, text_l)
+        logger.info("encoding concluded")
+        return arr_out
+    
+    else: 
+        # no modification to encoding ->  ordinal encoding
         # One Hot only directly before input in NN to avoid big saves
+
+        arr_out = p.fillText(arr_in, text_l)
+        logger.info("encoding concluded")
+        return arr_out
+        
         '''
         # not Bag of word -> fix size manualy
         y = []
@@ -202,8 +225,7 @@ def encodingTyp(arr_in, code, dict_len, text_l):
                 coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,text_l)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
         else:
 '''
-        # no modification to encoding ->  ordinal encoding
-        return arr_in
+        
     logger.info("encoding concluded")
     return coding_out.tolist()
 
@@ -426,7 +448,7 @@ if final_set:
                 if preproc == 3:
                     texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
                     #breakpoint()
-                f_o= encodingTyp(texts, coding, dictLen(dic_file),word_max)
+                f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
                 # add category, TODO: can be better
                 for row in cats:
                     if row[0] in g:
@@ -450,7 +472,7 @@ if final_set:
                 if preproc == 3:
                     texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
                     #breakpoint()
-                f_o= encodingTyp(texts, coding, dictLen(dic_file),word_max)
+                f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
 
                 final_output += f_o
 
