@@ -18,6 +18,8 @@ import pandas as pd
 # output design: 
 # header: position category, size cat, size lex || body: text (v2w format, final transformation in last step) 
 
+# Logger
+logger = logging.getLogger(__name__)
 
 # Errormessage
 USE_INFO = """USE: pre_proc.py [define Input] [option] [option] ...
@@ -59,7 +61,10 @@ def pathExists(path):
         return 'w+'
     else: 
         return 'r+'
-
+def getAllFiles(directory):
+    all_files = [(directory + f) for f in listdir(directory) if (f.endswith(".csv") or f.endswith(".txt"))]
+    logger.debug("files found: "+str(len(all_files)))
+    return all_files
 def getDictionaryLength(path):
     return len(pd.read_table(path, header=None))
 
@@ -371,9 +376,13 @@ def cutWord(text,modus):
     # TODO: different when custom TF IDF
     filtered_text = []
 
-    for el in doc:
-        if nlp.vocab[el.text].is_stop == False:
+    for el in doc: 
+        if el not in STOP_WORDS:
             filtered_text.append(el)
+
+'''    for el in doc:
+        if nlp.vocab[el.text].is_stop == False:
+            filtered_text.append(el)'''
 
     if modus == 1:
         return wordTyp(filtered_text)
@@ -591,6 +600,25 @@ def grammer(text):
                 output.append(token.lemma_.lower())
     return output, len(output)
 
+def loadStopword(path):
+    # TODO: check if valid directory 
+    logger.info("start adding stopworts")
+    files = getAllFiles(path)
+    logger.debug(len(files)+" stopwordfiles found"
+
+    for document in files:
+        read_stopwords = pd.read_table(document, header = None).stack().tolist()
+        logger.debug(len(read_stopwords)+" stopwords found")
+        # convert to lemma
+        stop_word_string = " "
+        stop_word_string = stop_word_string.join(read_stopwords)
+        doc = nlp(stop_word_string)
+        for word in doc:
+            nlp.Defaults.stop_words.add(word.lemma_)  
+
+    logger.info("Stopwords added")
+
+    return True
 
 """
 # analyse cmdlineargs

@@ -58,7 +58,7 @@ final_set  = True
 loaded_config = "def"
 
 # files
-
+stop_word_dir = './stopword/'
 dic_file = './dictionary/def_dictionary.csv'
 topic_dic_file = './dictionary/kat.csv'
 topic_file = './save/'
@@ -108,10 +108,6 @@ def dictLen(path):
             dict_len += 1
     return dict_len
 
-def getAllFiles(directory):
-    all_files = [(directory + f) for f in listdir(directory) if (f.endswith(".csv") or f.endswith(".txt"))]
-    logger.debug("files found: "+str(len(all_files)))
-    return all_files
 
 def getFilename(input_path):
     return path.splitext(path.basename(input_path))[0]
@@ -384,8 +380,11 @@ if not path.isdir(input_directory):
 # load Config, if not defiend use default
 config_input = loadConfig(loaded_config)
 
+# load stopwords
+p.loadStopword(stop_word_dir)
+
 # get all documents in inputdirectory
-input_files = getAllFiles(input_directory)
+input_files = p.getAllFiles(input_directory)
 n_o_files = len(input_files)
 if n_o_files == 0:
     print("No files in directory")
