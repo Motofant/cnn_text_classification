@@ -213,6 +213,77 @@ def dictionary(path, tot_text, training, text_length):
     word_dict=[[],[]]
     num_arr=[]
     
+    
+    # Read dictionary
+    ## check if file exists and if its empty 
+    
+    if os.path.exists(path):
+        if os.path.getsize(path)> 2:
+            word_dict[0] = pd.read_table(path,usecols=[0], header = None).stack().tolist() # engine 
+            word_dict[1] = pd.read_table(path,usecols=[1], header = None).stack().tolist()
+    else:
+        print("File doesn't exist")
+        exit()
+
+    # convert to dictionary
+    dictionary = { word_dict[0][i]:i for i in range(0, len(word_dict[0]) ) }
+    dictionary_length = len(dictionary)
+
+    for word_arr in tot_text:
+        
+        encoded_text = []
+    ## write info in word_dict
+        if training:
+            for word in word_arr:
+                number = dictionary.get(word, None)
+                if number == None:
+                        number = dictionary_length
+                        dictionary[word] = number
+                        dictionary_length += 1
+                        word_dict[1].append(0)
+                encoded_text.append(number)
+
+        else: 
+            # new word in Testingdata
+            for word in word_arr:
+                number = dictionary.get(word, 1) # if wort doesnt exist in testdata write 1 
+                encoded_text.append(number)
+
+        ## calculating doc freq
+        for word in set(encoded_text):
+            word_dict[1][word] += 1    
+
+        num_arr.append(encoded_text)
+
+        # update TEXT_CT
+        global TEXT_CT
+        TEXT_CT += 1 
+
+    # lexsize has to be saved regardless wether training data or not    
+    global lex_size 
+    lex_size = dictionary_length
+
+    ## override dictionary
+    pd.DataFrame([list(dictionary.keys()),word_dict[1]]).T.to_csv(path, sep= "\t", header = None, index = False)
+    #print(pd.DataFrame(word_dict))
+    
+    '''
+    # bring Text to standart size
+    num_arr_fixsize = fillText(num_arr,text_length)
+
+    return num_arr_fixsize
+    '''
+
+    # fixed size throws problems with tfidf
+    return num_arr
+
+
+def dictionarySlightlyOlder(path, tot_text, training, text_length):
+
+    # returns fixedsized numberarray
+    word_dict=[[],[]]
+    num_arr=[]
+    
     # Read dictionary
     ## check if file exists and if its empty 
     

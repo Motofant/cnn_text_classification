@@ -184,7 +184,6 @@ def encodingTyp(arr_in, code, dict_len, text_l):
     # static size -> fillword not needed
     logger.info("encoding started")
     if code == 1:
-        # NOT DRY (see https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)
 
         coding_out = np.array([p.bagOfWords(arr_in[0],dict_len)])
         for text in arr_in[1:]:
@@ -204,7 +203,7 @@ def encodingTyp(arr_in, code, dict_len, text_l):
         else:
 '''
         # no modification to encoding ->  ordinal encoding
-        return y
+        return arr_in
     logger.info("encoding concluded")
     return coding_out.tolist()
 
@@ -476,7 +475,7 @@ if final_set:
     n_o_texts = len(final_output)
 
     # text_vec_l
-    if coding = 1:
+    if coding == 1:
         text_vec_l = dict_length
     else:
         text_vec_l = len(final_output[0])
@@ -484,7 +483,7 @@ if final_set:
             text_vec_l -= 1
 
     # word_vec_l 
-    if coding = 2:
+    if coding == 2:
         word_vec_l = dict_length
     else:
         word_vec_l = 1
@@ -510,7 +509,7 @@ if final_set:
         long_list = [item for sublist in final_output for item in sublist]
 
     # start Onehot encoding 
-    if coding = 2:
+    if coding == 2:
         long_list = keras.utils.to_categorical(long_list,word_vec_l)
     #in_text = np.reshape(long_list,(int(len(long_list)/text_vec_l),text_vec_l,word_vec_l)) 
     in_text = np.reshape(long_list,(n_o_texts,text_vec_l,word_vec_l)) 
