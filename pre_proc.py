@@ -5,9 +5,12 @@ import time
 import spacy
 from spacy.lang.de.stop_words import STOP_WORDS
 import csv
-import os.path # check file existence
+#import os.path # check file existence
+from os import path,listdir
+import os
 import math
 import pandas as pd
+import logging
 
 
 # Ideas, testing and other notes and stuff, TODO: delete before release
@@ -379,11 +382,11 @@ def cutWord(text,modus):
     for el in doc: 
         if el not in STOP_WORDS:
             filtered_text.append(el)
-
-'''    for el in doc:
-        if nlp.vocab[el.text].is_stop == False:
-            filtered_text.append(el)'''
-
+    
+    '''     
+    for el in doc:
+    if nlp.vocab[el.text].is_stop == False:
+        filtered_text.append(el)'''
     if modus == 1:
         return wordTyp(filtered_text)
     elif modus == 2:
@@ -604,11 +607,11 @@ def loadStopword(path):
     # TODO: check if valid directory 
     logger.info("start adding stopworts")
     files = getAllFiles(path)
-    logger.debug(len(files)+" stopwordfiles found"
+    logger.debug(str(len(files))+" stopwordfiles found")
 
     for document in files:
         read_stopwords = pd.read_table(document, header = None).stack().tolist()
-        logger.debug(len(read_stopwords)+" stopwords found")
+        logger.debug(str(len(read_stopwords))+" stopwords found")
         # convert to lemma
         stop_word_string = " "
         stop_word_string = stop_word_string.join(read_stopwords)

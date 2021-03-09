@@ -14,6 +14,7 @@ import pandas as pd
 ## Init logging 
 logging.basicConfig(filename='./log_pipeline.log',format= "%(asctime)s :: %(relativeCreated)d ms :: %(levelname)s :: %(module)s.%(funcName)s :: %(message)s", level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+logger.info("------------------------------------------")
 logger.info("Starting Pipeline")
 
 
@@ -444,6 +445,7 @@ if final_set:
             if file_parameter in g:
                 # load textfile
                 texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
+                
                 if preproc == 3:
                     texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
                     #breakpoint()
@@ -458,6 +460,7 @@ if final_set:
                             i += 1
 
                 final_output += f_o
+                #breakpoint()
     else:
         # testing data
         # get all files with same encoding
@@ -522,7 +525,7 @@ if final_set:
     # adjust input
     # TODO: make better
     cats = []
-    breakpoint()
+    #breakpoint()
     if training:
         cats = [sublist[0] for sublist in final_output]
         long_list = [item for sublist in final_output for item in sublist[1:]]
@@ -564,5 +567,3 @@ if final_set:
 config_input[3] = word_max
 config_input[0] = text_count
 saveShutdown(loaded_config,config_input)
-
-
