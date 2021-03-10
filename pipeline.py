@@ -5,9 +5,10 @@ import numpy as np
 import keras
 import csv
 import sys
-from os import path,listdir
+from os import path,listdir,remove
 import logging
 import pandas as pd
+from re import search
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 
@@ -23,7 +24,8 @@ logger.info("Starting Pipeline")
 # inputtyp
 training = False
 config_load = False
-just_encode = False
+just_encode = True
+delete_saves = True
 # TODO: change classes from read topics
 classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
 # networkvar TODO: add to ini
@@ -34,7 +36,7 @@ class_number = 9
 # number of all texts
 text_count = 0
 # max words in text
-word_max = 1200 # used for one hot -> fill word 
+word_max = 0 # used for one hot -> fill word 
 bar = 0.001477
 #word in dictionary -> only for testingpurposes
 #dict_size = 0
@@ -50,6 +52,7 @@ fix_size_param = 0
     # 2 = grammar
     # 3 = tf-idf
 preproc = 3
+
 # Coding
     # 0 = no coding -> ordinal encoded
     # 1 = bag of words
@@ -113,6 +116,22 @@ def dictLen(path):
 def getFilename(input_path):
     return path.splitext(path.basename(input_path))[0]
 
+
+def deleteSaves(save_dir, preproc, encoding):
+    for i in listdir(save_dir):
+        if search('t.*_'+str(preproc)+'_'+str(encoding)+'.*.csv',i):
+            remove(save_dir + i)
+    return True
+    
+def resetVar():
+    
+    # reset global variables
+    global word_max, text_count
+    word_max = 0
+    text_count = 0 
+
+    return True
+
 def calcUnknownWords():
     pass
 
@@ -141,7 +160,7 @@ def readFile(in_file, train):
     logger.info("Inputfile reading concluded")
     return file_in,category#, len(file_in)
 
-def textAna(text_in, prep_mode, dictio, train, text_len):
+def textAna(text_in, prep_mode, fix_size,dictio, train, text_len):
     logger.info("general textanalysis starting")
     preproc_out = []
     total_text = []
@@ -160,14 +179,22 @@ def textAna(text_in, prep_mode, dictio, train, text_len):
     # update word_max in needed
     
     longest_text = max(length_list)
-
+    shortest_text = min(length_list)
     # if text > 1200 exists  -> gets shorted
-    if longest_text > 1200:
-        longest_text = 1200
-    
-    if longest_text > text_len: 
-        global word_max
+
+    global word_max
+
+    if fix_size == 1:
+        logger.debug("fize_size == 1")
+        if shortest_text < 64:
+            shortest_text = 64
+        word_max = shortest_text
+    else:
+        logger.debug("fize_size != 1")
+        if longest_text > 1200:
+            longest_text = 1200             
         word_max = longest_text
+    logger.debug("word_max changed to "+ str(word_max))
     # encode text with dictionary
 
     # TODO check output 
@@ -340,9 +367,16 @@ if length < 2 or length > 7:
     print("invalid length")
     exit()
 
+# TODO change to enumerate?
+skip_iteration = False
 
+iterator = 0 
 for arg in sys.argv:
     # extra functions
+    if skip_iteration:
+        skip_iteration = False
+        continue
+
     if arg == "-dict":
         try:
             newDictionary(sys.argv[2],sys.argv[3])
@@ -350,8 +384,15 @@ for arg in sys.argv:
         except:
             print("wrong input")
         exit()
-
-
+    
+    # 
+    if arg == "-fill":
+        try:
+            fix_size_param = int(sys.argv[iterator+1])
+        except ValueError:
+            logger.debug("-fill got bad value, continue with 0")
+            fix_size_param = 0
+        continue
 
     # Inputfile is not the final input
     if arg == "-n":
@@ -367,6 +408,7 @@ for arg in sys.argv:
         continue
     else:
         loaded_config = arg
+    iterator += 1
 
 #endregion
 ## Config stuff 
@@ -383,6 +425,20 @@ config_input = loadConfig(loaded_config)
 
 # load stopwords
 p.loadStopword(stop_word_dir)
+
+# prepare fix size process
+if fix_size_param == 1:
+    logger.debug("fize size to smallest text")
+    if word_max == 0:
+        word_max = 1200
+        logger.info("changed word_max to 1200")
+elif fix_size_param == 2:
+    logger.debug("fize size to biggest text (repeat text)")
+    pass
+else: 
+    # in case input is random int
+    logger.debug("fize size to biggest text (repeat fillword)")
+    fix_size_param = 0
 
 # get all documents in inputdirectory
 input_files = p.getAllFiles(input_directory)
@@ -414,7 +470,7 @@ for input_file in input_files:
         saveCat(topic_file, cat,  preproc,coding, file_name)
 
     # call function wordcut + preprocessing
-    analysed_text = textAna(text,preproc,dic_file,training, word_max)
+    analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max)
 
 
     # TODO: change that in final set no save needed 
@@ -477,6 +533,7 @@ if final_set:
                 f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
 
                 final_output += f_o
+    
 
     
 
@@ -487,8 +544,12 @@ if final_set:
     if just_encode:
         
         config_input[0] = text_count
+        resetVar()
         saveShutdown(loaded_config,config_input)
+        if delete_saves:
+            deleteSaves(save_file_dir,preproc,coding)
         print("done")
+        
         exit()
 
     # prepare data
@@ -560,6 +621,9 @@ if final_set:
         for i in prediction:
             print(cc.showResult(i,classes).draw())
             i += 1
+    resetVar()
+    if delete_saves:
+        deleteSaves(save_file_dir,preproc,coding)
 
 
 # ending, saves necessary data for next launch
