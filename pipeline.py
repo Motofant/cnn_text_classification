@@ -9,6 +9,8 @@ from os import path,listdir,remove
 import logging
 import pandas as pd
 from re import search
+import spacy
+import tensorflow as tf
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 
@@ -248,7 +250,7 @@ def encodingTyp(arr_in, code, fill_param, dict_len, text_l):
             for text in y[1:]:
                 coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,text_l)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
         else:
-'''
+        '''
         
     logger.info("encoding concluded")
     return coding_out.tolist()
@@ -356,7 +358,9 @@ def loadConfig(config_name):
 #####################
 ### Pipeline
 #####################
-
+print(spacy.__version__)
+print(np.__version__)
+print(tf.__version__)
 # Commandline
 #region
 # shortest input: pipeline.py inputfile (default config, final input, testingset)

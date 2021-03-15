@@ -11,6 +11,8 @@ import os
 import math
 import pandas as pd
 import logging
+from collections import Counter
+# print version of libs
 
 
 # Ideas, testing and other notes and stuff, TODO: delete before release
@@ -53,9 +55,8 @@ kat_size = 0
 
 # Load necessary stuff
 nlp = spacy.load('de')
-
-
-# 
+#nlp = spacy.load('de_core_news_sm')
+ 
 def failInput():
     print(USE_INFO)
 
@@ -221,7 +222,6 @@ def dictionary_bef_pd(path, tot_text, training, text_length):
     return num_arr
 
 def dictionary(path, tot_text, training, text_length):
-
     # returns fixedsized numberarray
     word_dict=[[],[]]
     num_arr=[]
@@ -403,7 +403,7 @@ def cutWord(text,modus):
         return y, len(y)
 
 # TODO: change l_size to TEXT_SIZE
-def bagOfWords(num_arr, l_size):
+def bagOfWords_old(num_arr, l_size):
     # num_arr: Text transformed with ordinal encoding
     # l_size: Wörterbuchlänge, sollte lex_size betragen
     # no output size needed because length is allways constant
@@ -413,6 +413,17 @@ def bagOfWords(num_arr, l_size):
         word_to_vec[int(num_arr[i])] += 1
         i += 1
     return word_to_vec
+
+def bagOfWords(num_arr, l_size):
+    # num_arr: Text transformed with ordinal encoding
+    # l_size: Wörterbuchlänge, sollte lex_size betragen
+    # no output size needed because length is always constant
+    bow_array = [0] * l_size
+    counted_words = Counter(num_arr)
+    for key in counted_words:
+        bow_array[key] = counted_words.get(key)
+    
+    return bow_array
 
 
 # transforms ordinal encoded text to one-hot-encoded text, used as input for NN 

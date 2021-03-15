@@ -1,4 +1,3 @@
-#import keras
 import numpy as np
 import keras
 from keras.models import Sequential
@@ -34,7 +33,7 @@ classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wir
 # necessary for current version
 input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttwo_t.csv"# ordinal encoded input
 #input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttest.csv"# ordinal encoded input
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/text_0_0_.csv"
+input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/text_0_0__.csv"
 
 model_save = "./model/model.h5"
 weight_save = "./weight/weight.h5"
@@ -161,7 +160,7 @@ def newNetwork(in_shape):
 #endregion
 
 #### "Pipeline" ####
-'''
+
 # define vectors
 input_text = []
 valid_class = []
@@ -207,4 +206,3 @@ else:
         print(showResult(i, classes).draw())
 
         ### TODO: Show results
-'''
