@@ -222,10 +222,10 @@ def encodingTyp(arr_in, code, fill_param, dict_len, text_l):
     # static size -> fillword not needed
     logger.info("encoding started")
     if code == 1:
+        arr_out = p.bagOfWords(arr_in,text_l)
+        logger.info("encoding concluded")
+        return arr_out
 
-        coding_out = np.array([p.bagOfWords(arr_in[0],dict_len)])
-        for text in arr_in[1:]:
-            coding_out = np.vstack((coding_out,p.bagOfWords(text, dict_len)))
     elif fill_param == 2:
         arr_out = p.fillTextRepeat(arr_in, text_l)
         logger.info("encoding concluded")
@@ -253,7 +253,7 @@ def encodingTyp(arr_in, code, fill_param, dict_len, text_l):
         '''
         
     logger.info("encoding concluded")
-    return coding_out.tolist()
+    #return coding_out.tolist()
 
 # not longer needed
 def category(cat_in, topic_file):
@@ -358,9 +358,9 @@ def loadConfig(config_name):
 #####################
 ### Pipeline
 #####################
-print(spacy.__version__)
+'''print(spacy.__version__)
 print(np.__version__)
-print(tf.__version__)
+print(tf.__version__)'''
 # Commandline
 #region
 # shortest input: pipeline.py inputfile (default config, final input, testingset)
@@ -510,6 +510,7 @@ if final_set:
                     texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
                     #breakpoint()
                 f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
+                
                 # add category, TODO: can be better
                 for row in cats:
                     if row[0] in g:
@@ -544,7 +545,6 @@ if final_set:
     logger.info("Preprocessing finished")
     # save before next step
     saveData(out_file_dir,final_output, training, preproc, coding, "")
-    #breakpoint()
     if just_encode:
         
         config_input[0] = text_count

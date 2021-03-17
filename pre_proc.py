@@ -414,7 +414,7 @@ def bagOfWords_old(num_arr, l_size):
         i += 1
     return word_to_vec
 
-def bagOfWords(num_arr, l_size):
+def bagOfWords_v1(num_arr, l_size):
     # num_arr: Text transformed with ordinal encoding
     # l_size: Wörterbuchlänge, sollte lex_size betragen
     # no output size needed because length is always constant
@@ -424,6 +424,17 @@ def bagOfWords(num_arr, l_size):
         bow_array[key] = counted_words.get(key)
     
     return bow_array
+
+def bagOfWords(text_lists,l_size):
+    # create Output list
+    bow_lists = []
+    for text in text_lists:
+        counted_word = Counter({x:0 for x in range(l_size)})
+        counted_word.update(Counter(text))
+
+        bow_lists.append(list(dict(sorted(counted_word.items())).values()))
+    
+    return bow_lists
 
 
 # transforms ordinal encoded text to one-hot-encoded text, used as input for NN 
