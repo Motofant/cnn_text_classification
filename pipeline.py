@@ -207,14 +207,13 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len):
 
 def texAnaTfIdf(text_in,dictio,border,text_number):
     # TODO: Test if working for single text
-    preproc_out = []  
 
     logger.info("TF IDF started")
 
-    for text in text_in:
-        preproc_out.append(list(p.tfIdf(text,dictio, border, text_number)))
 
-        logger.info("TF IDF concluded")
+    preproc_out = p.tfIdf(text_in,dictio, border, text_number)
+
+    logger.info("TF IDF concluded")
     return preproc_out
 
 def encodingTyp(arr_in, code, fill_param, dict_len, text_l):
@@ -505,9 +504,8 @@ if final_set:
             if file_parameter in g:
                 # load textfile
                 texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
-                
                 if preproc == 3:
-                    texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
+                    texts = texAnaTfIdf(texts,dic_file,bar,text_count)
                     #breakpoint()
                 f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
                 
@@ -533,7 +531,7 @@ if final_set:
                 # load textfile
                 texts = loadData(save_file_dir, training, preproc,coding,g.replace("test_"+str(preproc)+"_"+str(coding)+"_",""))
                 if preproc == 3:
-                    texts = texAnaTfIdf(analysed_text,dic_file,bar,text_count)
+                    texts = texAnaTfIdf(texts,dic_file,bar,text_count)
                     #breakpoint()
                 f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
 

@@ -226,18 +226,17 @@ def dictionary(path, tot_text, training, text_length):
     word_dict=[[],[]]
     num_arr=[]
     
-    
     # Read dictionary
     ## check if file exists and if its empty 
     
     if os.path.exists(path):
         if os.path.getsize(path)> 2:
-            word_dict[0] = pd.read_table(path,usecols=[0], header = None).stack().tolist() # engine 
-            word_dict[1] = pd.read_table(path,usecols=[1], header = None).stack().tolist()
+            word_dict[0] = pd.read_table(path,usecols=[0], encoding="utf8", header = None).stack().tolist() # engine 
+            word_dict[1] = pd.read_table(path,usecols=[1], encoding="utf8", header = None).stack().tolist()
     else:
         print("File doesn't exist")
         exit()
-
+    
     # convert to dictionary
     dictionary = { word_dict[0][i]:i for i in range(0, len(word_dict[0]) ) }
     dictionary_length = len(dictionary)
@@ -565,7 +564,38 @@ def headerTransform(header):
 
 ### function which change the Inputsize
 # Termfrequency-inversedocument frequency
-def tfIdf(input_arr, path, bound, doc_count):
+
+def tfIdf(input_lists, dict_path, bound, doc_count):
+    output_lists = []
+    # read doc frequency
+    doc_freq = pd.read_table(dict_path,usecols=[1], engine="python", encoding="utf8", header = None).stack().tolist()
+    #reader_size = len(doc_freq)
+    for input_arr in input_lists:
+        j = len(input_arr)
+        counted_words = Counter(input_arr)
+        
+        i = 0       
+        # output: array of arrays, arr1: idf, arr2: tf, arr3: tf idf -> will be returned
+        calc_arr = np.zeros([3,j]) 
+        transf_arr = []
+        # calculate TF-IDF
+
+        for number in input_arr:
+            
+            calc_arr[0][i] = math.log(doc_count/doc_freq[int(number)])
+            calc_arr[1][i] = counted_words.get(int(number))/j
+            calc_arr[2][i] = calc_arr[0][i] * calc_arr[1][i]
+            
+            if calc_arr[2][i] > bound:
+                transf_arr.append(input_arr[i])
+
+            i += 1
+
+        output_lists.append(transf_arr)
+
+    return output_lists 
+
+def tfIdf_old(input_arr, path, bound, doc_count):
     # input_arr: array out of dictionary
     reader_size = 0
     j = len(input_arr)
@@ -576,11 +606,12 @@ def tfIdf(input_arr, path, bound, doc_count):
 
     # inverse document frequency
     # read doc freq
-    with open(path, mode="r+", newline='') as dictFile:
+    '''with open(path, mode="r+", newline='') as dictFile:
         reader = csv.reader(dictFile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         for row in reader:
-            doc_freq = np.append(doc_freq,int(row[1]))
-        reader_size = len(doc_freq)
+            doc_freq = np.append(doc_freq,int(row[1]))'''
+    doc_freq = pd.read_table(path,usecols=[1], engine="python", encoding="utf8", header = None).stack().tolist()
+    reader_size = len(doc_freq)
 
     term_freq = np.zeros(reader_size)
     i = 0
