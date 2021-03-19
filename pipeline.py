@@ -15,7 +15,7 @@ import tensorflow as tf
 # TODO: variable configlocation
 
 ## Init logging 
-logging.basicConfig(filename='./log_pipeline.log',format= "%(asctime)s :: %(relativeCreated)d ms :: %(levelname)s :: %(module)s.%(funcName)s :: %(message)s", level=logging.DEBUG)
+logging.basicConfig(filename='./Pipeline_time_test.log',format= "%(asctime)s :: %(relativeCreated)d ms :: %(levelname)s :: %(module)s.%(funcName)s :: %(message)s", level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.info("------------------------------------------")
 logger.info("Starting Pipeline")
@@ -170,12 +170,8 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len):
 
     # TODO -> read dictionary in before
     # Cut texts up in Lists of words
-    for text in text_in:
-        txt, num = p.cutWord(text,prep_mode)
-        total_text.append(txt)
-        length_list.append(num)
-        # check if text longer then the ones before 
-        # TODO: because of stopwords maybe for all
+    total_text,length_list = p.cutWord(text_in,prep_mode)
+
         #if (prep_mode == 1 or prep_mode == 2) and num > text_len:
 
     # update word_max in needed
@@ -348,7 +344,7 @@ def loadConfig(config_name):
         dic_file = x[4]
         save_file_dir = x[5]
         out_file_dir = x[6]
-    except:
+    except Exception:
         print("Error occured. Unexpected design of loaded config.")
     
     return x
@@ -384,7 +380,7 @@ for arg in sys.argv:
         try:
             newDictionary(sys.argv[2],sys.argv[3])
             print("Dictionary created succesfully")
-        except:
+        except Exception:
             print("wrong input")
         exit()
     
@@ -425,7 +421,7 @@ if not path.isdir(input_directory):
 
 # load Config, if not defiend use default
 config_input = loadConfig(loaded_config)
-
+logger.info("loaded config: " + loaded_config)
 # load stopwords
 p.loadStopword(stop_word_dir)
 
@@ -538,11 +534,10 @@ if final_set:
                 final_output += f_o
     
 
-    
-
-    logger.info("Preprocessing finished")
     # save before next step
     saveData(out_file_dir,final_output, training, preproc, coding, "")
+    logger.info("All preparations (Textanalysis and Preprocessing) concluded.")
+
     if just_encode:
         
         config_input[0] = text_count

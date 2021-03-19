@@ -117,7 +117,7 @@ def dictionary_old(path,word_arr):
                     #print(row)
                     
                     word_dict.append(row[0])
-            except:
+            except Exception:
                 pass   
             print("Completed reading")
     ## write info in word_dict
@@ -157,7 +157,7 @@ def dictionary_bef_pd(path, tot_text, training, text_length):
                 for row in reader:                    
                     word_dict[0].append(row[0])
                     word_dict[1].append(row[1])
-            except:
+            except Exception:
                 print("invalid dictionary-line")
                 print(row)
                 #pass   
@@ -359,7 +359,56 @@ def dictionarySlightlyOlder(path, tot_text, training, text_length):
     # fixed size throws problems with tfidf
     return num_arr
 
-def cutWord(text,modus): 
+def cutWord(total_text,mode):
+    # text: newsarticle 
+    # modus: preprocessing-typ: 
+        # 0: default
+        # 1: wordtyp
+        # 2: grammer
+        # 3: tfidf -> save output of dictionary
+    
+    total_tokens = []
+    total_output = []
+    total_text_len = []
+
+    for text in total_text:
+
+        # remove unnecessary punctuation
+        for letter in cleanup:
+            text = text.replace(letter, '')
+        text = text.replace('.\\','. ')
+
+        doc = nlp(text)
+
+        filtered_text = []
+
+        for word in doc:
+            if word not in STOP_WORDS:
+                filtered_text.append(word)
+        
+        total_tokens.append(filtered_text)
+    
+    if mode == 1:
+        return wordTyp(total_tokens)
+
+    elif mode == 2:
+        return grammar(total_tokens)
+
+    else:
+        # both default and TF IDF need entire textbody
+        logger.info("pre_proc started")
+        for text in total_tokens:
+            y = []
+            for token in text:
+                if token.pos_ != "PUNCT" and token.pos_ != "SYM" and token.lemma_ != '\n' and token.lemma_ != '. . . ':
+                    y.append(token.lemma_.lower())
+            total_output.append(y)
+            total_text_len.append(len(y))
+        logger.info("pre_proc finished")
+    
+    return total_output, total_text_len
+
+def cutWord_old(text,modus): 
     
     # text: newsarticle 
     # modus: preprocessing-typ: 
@@ -387,9 +436,9 @@ def cutWord(text,modus):
     if nlp.vocab[el.text].is_stop == False:
         filtered_text.append(el)'''
     if modus == 1:
-        return wordTyp(filtered_text)
+        return wordTyp_old(filtered_text)
     elif modus == 2:
-        return grammer(filtered_text)
+        return grammar_old(filtered_text)
     else: 
         y = []
         for token in filtered_text:
@@ -640,8 +689,41 @@ def tfIdf_old(input_arr, path, bound, doc_count):
     #return np.vstack((input_arr,output[2]))
     return transf_arr.astype(int)
 
+def wordTyp(total_text):
+    output_text = []
+    output_len = []
 
-def wordTyp(text):
+    logger.info("pre_proc started")
+
+    for text in total_text:
+        word_typ_preproc= []
+        for token in text: 
+            if token.pos_ == "NOUN" or token.pos_ == "VERB":
+                word_typ_preproc.append(token.lemma_.lower())
+        output_text.append(word_typ_preproc)
+        output_len.append(len(word_typ_preproc))
+
+    logger.info("pre_proc finished")
+    return output_text, output_len
+
+def grammar(total_text):
+    output_text = []
+    output_len = []
+
+    logger.info("pre_proc started")
+    
+    for text in total_text:
+        grammar_preproc= []
+        for token in text: 
+            if (token.pos_ == "NOUN" or token.pos_ == "VERB") and (token.dep_ == "sb" or token.dep_ == "pd" or token.dep_ == "ROOT"):
+                    grammar_preproc.append(token.lemma_.lower())
+        output_text.append(grammar_preproc)
+        output_len.append(len(grammar_preproc))
+
+    logger.info("pre_proc finished")
+    return output_text, output_len
+
+def wordTyp_old(text):
     output = []
     for token in text: 
         if token.pos_ == "NOUN" or token.pos_ == "VERB":
@@ -649,7 +731,7 @@ def wordTyp(text):
 
     return output, len(output)
 
-def grammer(text):
+def grammar_old(text):
     output = []
     for token in text: 
         if (token.pos_ == "NOUN" or token.pos_ == "VERB") and (token.dep_ == "sb" or token.dep_ == "pd" or token.dep_ == "ROOT"):
