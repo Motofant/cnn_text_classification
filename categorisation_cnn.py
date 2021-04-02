@@ -11,6 +11,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import logging # TODO
 from texttable import Texttable
+import pre_proc as p 
+from data_gen import DataGenerator
 #import sklearn.model_selection as sms
 
 
@@ -34,7 +36,11 @@ classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wir
 # necessary for current version
 input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttwo_t.csv"# ordinal encoded input
 #input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttest.csv"# ordinal encoded input
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/text_0_0_.csv"
+input_file = "C:/Users/Erik/Desktop/test1.csv"
+input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/test_0_1_.csv"
+#input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/test/test_0_0_fill_2.csv"
+input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/train_0_0_repeat.csv"
+input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/test/test_0_0_fill_2.csv"
 
 model_save = "./model/model.h5"
 weight_save = "./weight/weight.h5"
@@ -57,7 +63,6 @@ input_text = np.array([])
 
 # Neural Network
 nn_input_size = (1200, 1)
-
 #endregion
 
 #### Functions ####
@@ -85,7 +90,7 @@ def readFile(input_file, train, text_l, word_l,cat_size):
 
     if train:
         in_cat = pd.read_table(input_file,usecols=[0],header = None).to_numpy()
-        in_text = pd.read_table(input_file,usecols=list(range(text_l))[0:],header = None).to_numpy()
+        in_text = pd.read_table(input_file,usecols=list(range(text_l+1))[1:],header = None).to_numpy()
     else:
         in_cat = []
         in_text = pd.read_table(input_file,header = None).to_numpy()
@@ -118,17 +123,31 @@ def newNetwork(in_shape):
     model = Sequential()
 
     model.add(Conv1D(64,3,input_shape=in_shape,activation="relu",padding="valid"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.5))
 
+    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(pool_size = 3))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.5))
+    
+    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.5))
+    '''
+    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.5))
+    
+    model.add(Conv1D(64,3, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
 
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(pool_size = 2))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
@@ -137,6 +156,11 @@ def newNetwork(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
+    '''
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.5))
 
     model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
@@ -144,7 +168,7 @@ def newNetwork(in_shape):
     #model.add(Dropout(0.5))
     
     model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization()) # nötig, damit nicht 0,1111
     #model.add(Dropout(0.5))
     
@@ -161,50 +185,80 @@ def newNetwork(in_shape):
 #endregion
 
 #### "Pipeline" ####
-'''
-# define vectors
-input_text = []
-valid_class = []
+if __name__ == "__main__":
+    # define vectors
+    input_text = []
+    valid_class = []
 
-# check where data is comming from
-if data_from_file:
-    input_text, valid_class = readFile(input_file, training, Text_length, word_vec_length,cat_size)
-    pass
-else:
-    ## use Vector
-    pass 
+    # check where data is comming from
+    if data_from_file:
+        input_text, valid_class = readFile(input_file, training, Text_length, word_vec_length,cat_size)
+        pass
+    else:
+        ## use Vector
+        pass 
 
-# create CNN
-model = newNetwork(nn_input_size)
+    if one_hot:
+        #input_text = keras.utils.to_categorical(input_text,word_vec_l)
+        input_text = keras.utils.to_categorical(input_text,278504,dtype="int8")
+    
+        
+        #input_text = p.oneHot(input_text,278504,0)
+    # create CNN
+    model = newNetwork(nn_input_size)
 
-    ## if already used -> use weights
-if load_nn:
-    model.load_weights(weight_save)
+        ## if already used -> use weights
+    if load_nn:
+        model.load_weights(weight_save)
 
-    ## show model
-model.summary()
+        ## show model
+    model.summary()
 
 
 
-# do stuff
-if training:
-    ## training -> save weights in the end -> non result needed
-        ### TODO: change epoches/batchsize ? 
-    history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=50, batch_size=10)
-        ### TODO: show accc improvement? 
-        ### update weights
-    model.save_weights(weight_save)
-    accuracy = model.evaluate(input_text,valid_class)
-    print(accuracy)
-    visualHist(history)
-else:
-    ## test -> no save requiered (no weight updates) -> Show result
-    predictions = model.predict(input_text)
-        #print(valid_class[)
-    print(predictions)
-    # TODO: check if multiple texts as input
-    for i in predictions:
-        print(showResult(i, classes).draw())
+    # do stuff
+    if training:
+        #train_gen = DataGenerator()
+        #model.fit_generator(generator= train_gen)
+        
+        ## training -> save weights in the end -> non result needed
+            ### TODO: change epoches/batchsize ? 
+        history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=10, batch_size=50)
+            ### TODO: show accc improvement? 
+            ### update weights
+        model.save_weights(weight_save)
+        accuracy = model.evaluate(input_text,valid_class)
+        print(accuracy)
+        visualHist(history)
+    else:
+        ## test -> no save requiered (no weight updates) -> Show result
+        predictions = model.predict(input_text)
+            #print(valid_class[)
+        print(predictions)
+        # TODO: check if multiple texts as input
+        j = 1
+        print(type(predictions[0][0]))
+        
 
-        ### TODO: Show results
+        out = []
+        for row in predictions:
+            row = list(row)
+            i = max(row)
+            out.append(row.index(i))
+        #np.savetxt("./result.csv",out,delimiter=",")
+        '''import csv
+        with open("./result.txt", mode="w+", newline='') as dictFile:
+            writer=csv.writer(dictFile)
+            for row in predictions:
+                i = []
+                for el in row:
+                    i.append(float(el))
+                writer.writerow(i)'''
+        
+        pd.DataFrame(out).to_csv("./result.csv", header = None, index = False)
+        '''for i in predictions:
+            print(j)
+            print(showResult(i, classes).draw())
+            j += 1
+            ### TODO: Show results
 '''

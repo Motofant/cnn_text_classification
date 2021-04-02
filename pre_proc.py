@@ -40,7 +40,7 @@ USE_INFO = """USE: pre_proc.py [define Input] [option] [option] ...
 #HIGH_BOUND = 100
 #TEXT_SIZE = 500 #number of words, text can't be longer than that
 TEXT_CT = 20 # number of texts in input
-cleanup = string.punctuation.replace(',-.','-')+'“'
+cleanup = "'#$%&*+=/<>{|@}[]^_-~"  #string.punctuation.replace('!"#$%&'()*+, -./:;<=>?','-')+'“'
 
 # Variables
 #input_file = ""
@@ -383,7 +383,7 @@ def cutWord(total_text,mode):
         filtered_text = []
 
         for word in doc:
-            if word not in STOP_WORDS:
+            if word.lemma_ not in STOP_WORDS:
                 filtered_text.append(word)
         
         total_tokens.append(filtered_text)
@@ -417,10 +417,11 @@ def cutWord_old(text,modus):
         # 2: grammer
         # 3: tfidf -> save output of dictionary
     # remove punctuation 
+    '''
     for letter in cleanup:
         text = text.replace(letter, '')
     text = text.replace('.\\','. ')
-
+'''
     doc = nlp(text)
     # cut up text in words
     # remove stopwords to improve speed
@@ -428,7 +429,7 @@ def cutWord_old(text,modus):
     filtered_text = []
 
     for el in doc: 
-        if el not in STOP_WORDS:
+        if el.lemma_ not in STOP_WORDS:
             filtered_text.append(el)
     
     '''     
@@ -504,6 +505,7 @@ def oneHot(num_arr, l_size, o_size):
         i += 1
 
     # fill rest with expletive
+    '''
     while i < o_size:
         w_vec = np.zeros(l_size)
         
@@ -511,7 +513,7 @@ def oneHot(num_arr, l_size, o_size):
         w_vec[0] = 1
         word_to_vec = np.vstack((word_to_vec, w_vec))
         i += 1
-
+'''
     #print(np.shape(word_to_vec))
 
     # returns array of arrays like: ([0,1,0,0],[1,0,0,0],...)

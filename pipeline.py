@@ -11,6 +11,7 @@ import pandas as pd
 from re import search
 import spacy
 import tensorflow as tf
+from data_gen import DataGenerator
 #np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 
@@ -26,7 +27,7 @@ logger.info("Starting Pipeline")
 # inputtyp
 training = False
 config_load = False
-just_encode = True
+just_encode = False
 delete_saves = True
 # TODO: change classes from read topics
 classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
@@ -38,8 +39,8 @@ class_number = 9
 # number of all texts
 text_count = 0
 # max words in text
-word_max = 0 # used for one hot -> fill word 
-bar = 0.001477
+word_max = 0 # used for fill word 
+bar = 0.1
 #word in dictionary -> only for testingpurposes
 #dict_size = 0
 # fix textsize 
@@ -62,6 +63,8 @@ preproc = 3
 coding = 1
 final_set  = True
 loaded_config = "def"
+
+batch_size = 100
 
 # files
 stop_word_dir = './stopword/'
@@ -114,6 +117,8 @@ def dictLen(path):
             dict_len += 1
     return dict_len
 
+def catTransform(cat):
+    return [el for l in cat for el in l[1:]]
 
 def getFilename(input_path):
     return path.splitext(path.basename(input_path))[0]
@@ -182,17 +187,18 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len):
 
     global word_max
 
-    if fix_size == 1:
-        logger.debug("fize_size == 1")
-        if shortest_text < 64:
-            shortest_text = 64
-        word_max = shortest_text
-    else:
-        logger.debug("fize_size != 1")
-        if longest_text > 1200:
-            longest_text = 1200             
-        word_max = longest_text
-    logger.debug("word_max changed to "+ str(word_max))
+    if train:
+        if fix_size == 1:
+            logger.debug("fize_size == 1")
+            if shortest_text < 64:
+                shortest_text = 64
+            word_max = shortest_text
+        else:
+            logger.debug("fize_size != 1")
+            if longest_text > 1200:
+                longest_text = 1200             
+            word_max = longest_text
+        logger.debug("word_max changed to "+ str(word_max))
     # encode text with dictionary
 
     # TODO check output 
@@ -212,26 +218,37 @@ def texAnaTfIdf(text_in,dictio,border,text_number):
     logger.info("TF IDF concluded")
     return preproc_out
 
-def encodingTyp(arr_in, code, fill_param, dict_len, text_l):
+def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
     ## Bag of words
     # static size -> fillword not needed
     logger.info("encoding started")
+    arr_out = []
     if code == 1:
-        arr_out = p.bagOfWords(arr_in,text_l)
+        arr_out = p.bagOfWords(arr_in,vec_l)
         logger.info("encoding concluded")
         return arr_out
 
-    elif fill_param == 2:
-        arr_out = p.fillTextRepeat(arr_in, text_l)
-        logger.info("encoding concluded")
-        return arr_out
-    
-    else: 
-        # no modification to encoding ->  ordinal encoding
-        # One Hot only directly before input in NN to avoid big saves
+    else:
+        # fill text to same size, necessary fro input
+        if fill_param == 2:
+            #arr_out = p.fillTextRepeat(arr_in, text_l)
+            arr_out = p.fillTextRepeat(arr_in, vec_l)
+            logger.info("encoding concluded")
+        else: 
+            # no modification to encoding ->  ordinal encoding
+            # One Hot only directly before input in NN to avoid big saves
+            arr_out = p.fillText(arr_in, vec_l)
+            #arr_out = p.fillText(arr_in, text_l)
+            logger.info("encoding concluded")
+        
+        # encode in OneHot if asked
+        if code == 2:
+            output = []
+            
+            for arr in arr_out:
+                output.append(list(keras.utils.to_categorical(arr, word_l)))
+            return output
 
-        arr_out = p.fillText(arr_in, text_l)
-        logger.info("encoding concluded")
         return arr_out
         
         '''
@@ -271,6 +288,90 @@ def saveCat(path, data, prep, code, name):
         writer.writerow(data)
     
     return True
+
+def saveDataSplit_old(ord_enc_data, train, pre_proc, encoding, directory, batchsize):
+    # ord_enc_data: Data without encoding
+    # directory: directory to save output files.
+    # batchsize: number of texts in one file
+
+    ## split list into multiple lists of batchsize
+    split_lists = [ord_enc_data[i:i+batchsize] for i in range(0,len(ord_enc_data), batchsize)]
+
+    ## Save splited lists in different files.
+    ## Save names to ID List
+
+    file_IDs = []
+    
+    file_name = ""
+    if train:
+        file_name = "train_" + str(pre_proc) + "_" + str(encoding) + "_"
+    else: 
+        file_name = "test_" + str(pre_proc) + "_" + str(encoding) + "_"
+    
+    iter = 0
+    for p_o_list in split_lists:
+        # Generate ID
+        path = directory + file_name + str(iter) + ".csv"
+        file_IDs.append(file_name + str(iter))
+        iter += 1
+
+        pd.DataFrame(p_o_list).to_csv(path, sep = "\t", header= None, index=False)        
+
+    return file_IDs
+
+def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batchsize, vec_l, word_l, filler):
+    # ord_enc_data: Data without encoding
+    # directory: directory to save output files.
+    # batchsize: number of texts in one file
+    # vec_l: size of dictionary(BOW) or text (other encodings)
+
+    ## split list into multiple lists of batchsize
+    split_lists = [ord_enc_data[i:i+batchsize] for i in range(0,len(ord_enc_data), batchsize)]
+    split_cats = [cats[i:i+batchsize] for i in range(0,len(cats), batchsize)]
+    ## Save splited lists in different files.
+    ## Save names to ID List
+
+    file_IDs = []
+    
+    file_name = ""
+    if train:
+        file_name = "train_" + str(pre_proc) + "_" + str(encoding) + "_"
+
+        iter = 0
+        for p_o_list in split_lists:
+            # encode part of total texts        
+            encoded_list = encodingTyp(p_o_list, encoding, filler, vec_l, word_l)
+
+            # push category to first value
+            part_iter = 0
+            for single_text in encoded_list:
+                single_text.insert(0,split_cats[iter][part_iter])
+                part_iter += 1
+
+            # Generate ID
+            path = directory + file_name + str(iter) + ".csv"
+            file_IDs.append(file_name + str(iter))
+            iter += 1
+
+            pd.DataFrame(encoded_list).to_csv(path, sep = "\t", header= None, index=False)        
+
+    
+    else: 
+        file_name = "test_" + str(pre_proc) + "_" + str(encoding) + "_"
+    
+        iter = 0
+        for p_o_list in split_lists:
+            # encode part of total texts        
+            encoded_list = encodingTyp(p_o_list, encoding, filler, vec_l, word_l)
+
+            # Generate ID
+            path = directory + file_name + str(iter) + ".csv"
+            file_IDs.append(file_name + str(iter))
+            iter += 1
+
+            pd.DataFrame(encoded_list).to_csv(path, sep = "\t", header= None, index=False)        
+
+    return file_IDs
 
 def loadCat(path, prep, code):
     file_name = path + "topic_"+str(prep)+"_"+str(code)+".csv"
@@ -353,278 +454,298 @@ def loadConfig(config_name):
 #####################
 ### Pipeline
 #####################
-'''print(spacy.__version__)
-print(np.__version__)
-print(tf.__version__)'''
-# Commandline
-#region
-# shortest input: pipeline.py inputfile (default config, final input, testingset)
-# longest input: pipeline.py config -t -n inputfile (Input not final, trainingset)
-length =len(sys.argv)
-# check validity of input
-if length < 2 or length > 7:
-    print("invalid length")
-    exit()
-
-# TODO change to enumerate?
-skip_iteration = False
-
-iterator = 0 
-for arg in sys.argv:
-    # extra functions
-    if skip_iteration:
-        skip_iteration = False
-        continue
-
-    if arg == "-dict":
-        try:
-            newDictionary(sys.argv[2],sys.argv[3])
-            print("Dictionary created succesfully")
-        except Exception:
-            print("wrong input")
+if __name__ == "__main__":
+    '''print(spacy.__version__)
+    print(np.__version__)
+    print(tf.__version__)'''
+    # Commandline
+    #region
+    # shortest input: pipeline.py inputfile (default config, final input, testingset)
+    # longest input: pipeline.py config -t -n inputfile (Input not final, trainingset)
+    length =len(sys.argv)
+    # check validity of input
+    if length < 2 or length > 7:
+        print("invalid length")
         exit()
-    
-    # 
-    if arg == "-fill":
-        try:
-            fix_size_param = int(sys.argv[iterator+1])
-        except ValueError:
-            logger.debug("-fill got bad value, continue with 0")
-            fix_size_param = 0
-        continue
 
-    # Inputfile is not the final input
-    if arg == "-n":
-        final_set = False
-        continue
-    # Input is a trainingset
-    if arg == "-f":
-        training = True
-        continue
-    # Last Element is inputfile
-    if arg== sys.argv[-1]:
-        input_directory = arg
-        continue
-    else:
-        loaded_config = arg
-    iterator += 1
+    # TODO change to enumerate?
+    skip_iteration = False
 
-#endregion
-## Config stuff 
-# check validity of File and config
-if not c.existProf("test.ini",loaded_config):
-    print("No valid config, continue with default.")
-    loaded_config = "def"
-if not path.isdir(input_directory):
-    print("Input directory doesn't exist, shutting down.")
-    exit()
+    iterator = 0 
+    for arg in sys.argv:
+        # extra functions
+        if skip_iteration:
+            skip_iteration = False
+            continue
 
-# load Config, if not defiend use default
-config_input = loadConfig(loaded_config)
-logger.info("loaded config: " + loaded_config)
-# load stopwords
-p.loadStopword(stop_word_dir)
-
-# prepare fix size process
-if fix_size_param == 1:
-    logger.debug("fize size to smallest text")
-    if word_max == 0:
-        word_max = 1200
-        logger.info("changed word_max to 1200")
-elif fix_size_param == 2:
-    logger.debug("fize size to biggest text (repeat text)")
-    pass
-else: 
-    # in case input is random int
-    logger.debug("fize size to biggest text (repeat fillword)")
-    fix_size_param = 0
-
-# get all documents in inputdirectory
-input_files = p.getAllFiles(input_directory)
-n_o_files = len(input_files)
-if n_o_files == 0:
-    print("No files in directory")
-    exit()
-
-# do things with all documents
-for input_file in input_files:
-    
-
-    # get Filename to create output
-    file_name = getFilename(input_file)
-
-
-
-    # read input file 
-    text, cat = readFile(input_file, training)
-
-    # define category if trainingsdata
-    if training:
-        # Old
-        # cat = category(cat, topic_dic_file)
-        cat = p.topic(cat,topic_dic_file)
-
-    # deleted cause right now save is needed
-    #    if not final_set:
-        saveCat(topic_file, cat,  preproc,coding, file_name)
-
-    # call function wordcut + preprocessing
-    analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max)
-
-
-    # TODO: change that in final set no save needed 
-    saveData(save_file_dir,list(analysed_text), training ,preproc, coding, file_name)
-
-    logger.info(file_name + " finished.")
-    print(file_name + " finished")
-
-# temp exclusion
-if final_set:
-    # def output list
-    final_output = []
-    # define file_parameter
-    
-
-    if training:
-        file_parameter = "train_"+str(preproc)+"_"+str(coding)    
-        # adding categories
-        #check how many files will be transformed
-        # TODO: maybe count in config
-        # load categoryfile
-        cats = loadCat(topic_file,preproc,coding)
-
-
-        for f in listdir(save_file_dir):
-            g = getFilename(f)
-
-            if file_parameter in g:
-                # load textfile
-                texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
-                if preproc == 3:
-                    texts = texAnaTfIdf(texts,dic_file,bar,text_count)
-                    #breakpoint()
-                f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
-                
-                # add category, TODO: can be better
-                for row in cats:
-                    if row[0] in g:
-                        
-                        i = 0
-                        for element in row[1:]:                      
-                            f_o[i].insert(0, element)
-                            i += 1
-
-                final_output += f_o
-                #breakpoint()
-    else:
-        # testing data
-        # get all files with same encoding
-        file_parameter = "test_"+str(preproc)+"_"+str(coding)
-        for f in listdir(save_file_dir):
-            g = getFilename(f)
-
-            if file_parameter in g:
-                # load textfile
-                texts = loadData(save_file_dir, training, preproc,coding,g.replace("test_"+str(preproc)+"_"+str(coding)+"_",""))
-                if preproc == 3:
-                    texts = texAnaTfIdf(texts,dic_file,bar,text_count)
-                    #breakpoint()
-                f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
-
-                final_output += f_o
-    
-
-    # save before next step
-    saveData(out_file_dir,final_output, training, preproc, coding, "")
-    logger.info("All preparations (Textanalysis and Preprocessing) concluded.")
-
-    if just_encode:
+        if arg == "-dict":
+            try:
+                newDictionary(sys.argv[2],sys.argv[3])
+                print("Dictionary created succesfully")
+            except Exception:
+                print("wrong input")
+            exit()
         
-        config_input[0] = text_count
+        # 
+        if arg == "-fill":
+            try:
+                fix_size_param = int(sys.argv[iterator+1])
+            except ValueError:
+                logger.debug("-fill got bad value, continue with 0")
+                fix_size_param = 0
+            continue
+
+        # Inputfile is not the final input
+        if arg == "-n":
+            final_set = False
+            continue
+        # Input is a trainingset
+        if arg == "-f":
+            training = True
+            continue
+        # Last Element is inputfile
+        if arg== sys.argv[-1]:
+            input_directory = arg
+            continue
+        else:
+            loaded_config = arg
+        iterator += 1
+
+    #endregion
+    ## Config stuff 
+    # check validity of File and config
+    if not c.existProf("test.ini",loaded_config):
+        print("No valid config, continue with default.")
+        loaded_config = "def"
+    if not path.isdir(input_directory):
+        print("Input directory doesn't exist, shutting down.")
+        exit()
+
+    # load Config, if not defiend use default
+    config_input = loadConfig(loaded_config)
+    logger.info("loaded config: " + loaded_config)
+    # load stopwords
+    p.loadStopword(stop_word_dir)
+
+    # prepare fix size process
+    if training:
+        if fix_size_param == 1:
+            logger.debug("fize size to smallest text")
+            if word_max == 0:
+                word_max = 1200
+                logger.info("changed word_max to 1200")
+        elif fix_size_param == 2:
+            logger.debug("fize size to biggest text (repeat text)")
+            pass
+        else: 
+            # in case input is random int
+            logger.debug("fize size to biggest text (repeat fillword)")
+            fix_size_param = 0
+
+    # get all documents in inputdirectory
+    input_files = p.getAllFiles(input_directory)
+    n_o_files = len(input_files)
+    if n_o_files == 0:
+        print("No files in directory")
+        exit()
+
+    # do things with all documents
+    for input_file in input_files:
+        
+        # get Filename to create output
+        file_name = getFilename(input_file)
+
+        # read input file 
+        text, cat = readFile(input_file, training)
+
+        # define category if trainingsdata
+        if training:
+            # Old
+            # cat = category(cat, topic_dic_file)
+            cat = p.topic(cat,topic_dic_file)
+
+        # deleted cause right now save is needed
+        #    if not final_set:
+            saveCat(topic_file, cat,  preproc,coding, file_name)
+
+        # call function wordcut + preprocessing
+        analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max)
+
+
+        # TODO: change that in final set no save needed 
+        saveData(save_file_dir,list(analysed_text), training ,preproc, coding, file_name)
+
+        logger.info(file_name + " finished.")
+        print(file_name + " finished")
+
+    # temp exclusion
+    if final_set:
+        # define dictionary length
+        dict_length = p.getDictionaryLength(dic_file)
+
+        # def output list
+        final_output = []
+        # define params
+
+        vec_l = dict_length if coding == 1 else word_max
+        word_l = dict_length if coding == 2 else 1
+        number_of_texts = 0
+        cats = []
+        texts_list = []
+
+        # define file_parameter
+        
+
+        if training:
+            file_parameter = "train_"+str(preproc)+"_"+str(coding)    
+            # adding categories
+            #check how many files will be transformed
+            # TODO: maybe count in config
+            # load categoryfile
+            cats = loadCat(topic_file,preproc,coding)
+
+
+            for f in listdir(save_file_dir):
+                g = getFilename(f)
+
+                if file_parameter in g:
+                    # load textfile
+                    texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
+                    if preproc == 3:
+                        texts = texAnaTfIdf(texts,dic_file,bar,text_count)
+                        #breakpoint()
+                    texts_list.extend(texts)
+                    '''
+                    # encoding will happen later
+                    f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
+                    
+                    # add category, TODO: can be better
+                    for row in cats:
+                        if row[0] in g:
+                            
+                            i = 0
+                            for element in row[1:]:                      
+                                f_o[i].insert(0, element)
+                                i += 1
+                    
+                    final_output += f_o
+                    '''
+        else:
+            # testing data
+            # get all files with same encoding
+            file_parameter = "test_"+str(preproc)+"_"+str(coding)
+            for f in listdir(save_file_dir):
+                g = getFilename(f)
+
+                if file_parameter in g:
+                    # load textfile
+                    texts = loadData(save_file_dir, training, preproc,coding,g.replace("test_"+str(preproc)+"_"+str(coding)+"_",""))
+                    if preproc == 3:
+                        texts = texAnaTfIdf(texts,dic_file,bar,text_count)
+                        #breakpoint()
+                    texts_list.extend(texts)
+                    '''
+                    f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
+
+                    final_output += f_o
+                    '''
+        text_count = len(texts_list)
+        # save before next step
+        #saveData(out_file_dir,final_output, training, preproc, coding, "")
+        transformed_cats = catTransform(cats)
+        # 
+        file_ID_list = saveDataSplit(texts_list, transformed_cats,training, preproc, coding, out_file_dir, batch_size,vec_l,word_l,fix_size_param)
+        logger.info("All preparations (Textanalysis and Preprocessing) concluded.")
+
+        if just_encode:
+            # TODO: save file_ID
+            config_input[0] = text_count
+            resetVar()
+            saveShutdown(loaded_config,config_input)
+            if delete_saves:
+                deleteSaves(save_file_dir,preproc,coding)
+            print("done")
+            
+            exit()
+
+        # prepare data
+        '''
+        # define n_o_texts
+        n_o_texts = len(final_outpu#t)
+        '''
+        # text_vec_l
+        '''        
+        if coding == 1:
+            text_vec_l = vec_l
+        else:
+            text_vec_l = vec_l
+            if training:
+                text_vec_l -= 1'''
+        text_vec_l = vec_l
+        word_vec_l = word_l
+
+        # word_vec_l 
+        '''        
+        if coding == 2:
+            word_vec_l = dict_length
+        else:
+            word_vec_l = 1
+        '''
+        
+
+
+        # starting neural Network -> no save needed, watch for correct inputtype
+        model = cc.newNetwork((text_vec_l,word_vec_l))
+        if load_nn:
+            model.load_weights(weight_save)
+
+        model.summary()
+        #final_output = np.asarray(final_output)
+        # adjust input
+        # TODO: make better
+        cats = []
+        #breakpoint()
+        '''if training:
+            cats = [sublist[0] for sublist in final_output]
+            long_list = [item for sublist in final_output for item in sublist[1:]]
+        else:
+            long_list = [item for sublist in final_output for item in sublist]
+
+
+        in_text = np.reshape(long_list,(n_o_texts,text_vec_l,word_vec_l)) 
+        '''
+        if training:
+            # TODO: define trainings- and validationdata
+            trainings_train_gen = DataGenerator(file_ID_list, out_file_dir,training, text_vec_l, word_vec_l, len(classes),coding, batch_size,1)
+            
+            #valid_class = keras.utils.to_categorical(cats,class_number)
+
+            logger.info("start training")
+            history = model.fit_generator(generator= trainings_train_gen, epochs =20, workers=4)
+            #history =model.fit(x = in_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
+            logger.info("training done")
+            model.save_weights(weight_save)
+
+            #accuracy = model.evaluate(in_text,valid_class)
+            #print(accuracy)
+            
+            cc.visualHist(history)    
+        else:
+            logger.info("start predictions")
+            prediction = model.predict(in_text)    
+            logger.info("predictions done")
+            categories = cc.setCats(topic_dic_file)
+            # TODO: change
+            for i in prediction:
+                print(cc.showResult(i,classes).draw())
+                i += 1
         resetVar()
-        saveShutdown(loaded_config,config_input)
         if delete_saves:
             deleteSaves(save_file_dir,preproc,coding)
-        print("done")
-        
-        exit()
-
-    # prepare data
-
-    # define dictionary length
-    dict_length = p.getDictionaryLength(dic_file)
-    # define n_o_texts
-    n_o_texts = len(final_output)
-
-    # text_vec_l
-    if coding == 1:
-        text_vec_l = dict_length
-    else:
-        text_vec_l = len(final_output[0])
-        if training:
-            text_vec_l -= 1
-
-    # word_vec_l 
-    if coding == 2:
-        word_vec_l = dict_length
-    else:
-        word_vec_l = 1
-
-    
 
 
-    # starting neural Network -> no save needed, watch for correct inputtype
-    model = cc.newNetwork((text_vec_l,word_vec_l))
-    if load_nn:
-        model.load_weights(weight_save)
-
-    model.summary()
-    #final_output = np.asarray(final_output)
-    # adjust input
-    # TODO: make better
-    cats = []
-    #breakpoint()
-    if training:
-        cats = [sublist[0] for sublist in final_output]
-        long_list = [item for sublist in final_output for item in sublist[1:]]
-    else:
-        long_list = [item for sublist in final_output for item in sublist]
-
-    # start Onehot encoding 
-    if coding == 2:
-        long_list = keras.utils.to_categorical(long_list,word_vec_l)
-    #in_text = np.reshape(long_list,(int(len(long_list)/text_vec_l),text_vec_l,word_vec_l)) 
-    in_text = np.reshape(long_list,(n_o_texts,text_vec_l,word_vec_l)) 
-
-    if training:
-        #breakpoint()
-        valid_class = keras.utils.to_categorical(cats,class_number)
-
-        logger.info("start training")
-        history =model.fit(x = in_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
-        logger.info("training done")
-        model.save_weights(weight_save)
-
-        #accuracy = model.evaluate(in_text,valid_class)
-        #print(accuracy)
-        
-        cc.visualHist(history)    
-    else:
-        logger.info("start predictions")
-        prediction = model.predict(in_text)    
-        logger.info("predictions done")
-        categories = cc.setCats(topic_dic_file)
-        # TODO: change
-        for i in prediction:
-            print(cc.showResult(i,classes).draw())
-            i += 1
-    resetVar()
-    if delete_saves:
-        deleteSaves(save_file_dir,preproc,coding)
-
-
-# ending, saves necessary data for next launch
-# updating values
-config_input[3] = word_max
-config_input[0] = text_count
-saveShutdown(loaded_config,config_input)
+    # ending, saves necessary data for next launch
+    # updating values
+    config_input[3] = word_max
+    config_input[0] = text_count
+    saveShutdown(loaded_config,config_input)
