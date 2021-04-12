@@ -27,7 +27,7 @@ logger.info("Starting Pipeline")
 # inputtyp
 training = False
 config_load = False
-just_encode = False
+just_encode = True
 delete_saves = True
 # TODO: change classes from read topics
 classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
@@ -36,6 +36,7 @@ text_vec_l = 1200
 word_vec_l = 1 
 load_nn = False
 class_number = 9
+dict_size_treshold = 5
 # number of all texts
 text_count = 0
 # max words in text
@@ -64,7 +65,7 @@ coding = 1
 final_set  = True
 loaded_config = "def"
 
-batch_size = 100
+batch_size = 400
 
 # files
 stop_word_dir = './stopword/'
@@ -577,7 +578,8 @@ if __name__ == "__main__":
 
         logger.info(file_name + " finished.")
         print(file_name + " finished")
-
+        del analysed_text
+        del text
     # temp exclusion
     if final_set:
         # define dictionary length
@@ -630,6 +632,16 @@ if __name__ == "__main__":
                     
                     final_output += f_o
                     '''
+            
+            if dict_size_treshold > 0:
+                logger.info("treshold != 0, dictionarymod started")
+                # decrease dictionary size by deleting
+                mod_dict, dic_file = p.smallerDict(dic_file, dict_size_treshold)
+                
+                # modify pre_processed text
+                texts_list = p.smallerText(texts_list, mod_dict)
+                logger.info("treshold != 0, dictionarymod ended")
+                del mod_dict
         else:
             # testing data
             # get all files with same encoding
@@ -640,6 +652,7 @@ if __name__ == "__main__":
                 if file_parameter in g:
                     # load textfile
                     texts = loadData(save_file_dir, training, preproc,coding,g.replace("test_"+str(preproc)+"_"+str(coding)+"_",""))
+                    
                     if preproc == 3:
                         texts = texAnaTfIdf(texts,dic_file,bar,text_count)
                         #breakpoint()
@@ -660,6 +673,7 @@ if __name__ == "__main__":
         if just_encode:
             # TODO: save file_ID
             config_input[0] = text_count
+            config_input[4] = dic_file
             resetVar()
             saveShutdown(loaded_config,config_input)
             if delete_saves:
@@ -748,4 +762,5 @@ if __name__ == "__main__":
     # updating values
     config_input[3] = word_max
     config_input[0] = text_count
+    config_input[4] = dic_file
     saveShutdown(loaded_config,config_input)

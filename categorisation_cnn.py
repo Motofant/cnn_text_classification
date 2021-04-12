@@ -39,12 +39,23 @@ input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output
 input_file = "C:/Users/Erik/Desktop/test1.csv"
 input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/test_0_1_.csv"
 #input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/test/test_0_0_fill_2.csv"
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/train_0_0_repeat.csv"
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/test/test_0_0_fill_2.csv"
+input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/train_0_0_0.csv"
+input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/test_0_0_0.csv"
 
 model_save = "./model/model.h5"
 weight_save = "./weight/weight.h5"
 weight_save = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/weight/weight.h5"
+
+# input
+training = True
+load_nn = not training
+input_file = ""
+if training:
+    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/train_0_0_0.csv"
+else:
+    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/test_0_0_0.csv"
+
+
 
 
 
@@ -120,13 +131,16 @@ def newNetwork(in_shape):
     ## create network (save)
     # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
     # https://keras.io/examples/nlp/pretrained_word_embeddings/
+
+
     model = Sequential()
 
     model.add(Conv1D(64,3,input_shape=in_shape,activation="relu",padding="valid"))
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
-
+    
+    
     model.add(Conv1D(64,3, activation="relu",padding="valid"))
     model.add(MaxPooling1D(pool_size = 3))
     model.add(keras.layers.BatchNormalization())
@@ -136,16 +150,12 @@ def newNetwork(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
-    '''
+     
     model.add(Conv1D(64,3, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
-    
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
+            
 
     model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
@@ -156,26 +166,16 @@ def newNetwork(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.5))
-    '''
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-    
+       
     model.add(Conv1D(64,5, activation="relu",padding="valid"))
     model.add(MaxPooling1D(3,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization()) # nötig, damit nicht 0,1111
+    model.add(keras.layers.BatchNormalization()) # nötig damit nicht 0,1111
     #model.add(Dropout(0.5))
-    
+        
     #model.add(GlobalMaxPooling1D())
 
     model.add(keras.layers.Flatten())
-    model.add(Dropout(0.5)) #ony for testing needed -> for limited datasets
+    model.add(Dropout(0.5))
     model.add(Dense(9, activation="softmax"))
 
     model.compile( loss='categorical_crossentropy', optimizer="adam", metrics=['accuracy'],experimental_run_tf_function=False)
@@ -199,8 +199,8 @@ if __name__ == "__main__":
         pass 
 
     if one_hot:
-        #input_text = keras.utils.to_categorical(input_text,word_vec_l)
-        input_text = keras.utils.to_categorical(input_text,278504,dtype="int8")
+        input_text = keras.utils.to_categorical(input_text,word_vec_l)
+        #input_text = keras.utils.to_categorical(input_text,278504,dtype="int8")
     
         
         #input_text = p.oneHot(input_text,278504,0)
@@ -223,7 +223,7 @@ if __name__ == "__main__":
         
         ## training -> save weights in the end -> non result needed
             ### TODO: change epoches/batchsize ? 
-        history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=10, batch_size=50)
+        history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
             ### TODO: show accc improvement? 
             ### update weights
         model.save_weights(weight_save)

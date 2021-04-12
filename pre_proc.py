@@ -760,6 +760,48 @@ def loadStopword(path):
 
     return True
 
+def smallerDict(dict_path, treshold):
+    out_list = []
+    new_dict = {}
+
+    out_list = dict(pd.read_table(dict_path, encoding="utf-8", header = None).itertuples(index=False, name=None))
+
+    iterator = 0 # iterates over every word in dictionary
+    counter = 0 # counts every word, that is over the treshold 
+    second_list = []
+    for el in out_list.keys():
+        val = int(out_list.get(el))
+        if val > treshold or val < 1:
+            second_list.append((el,val,iterator,counter))
+            new_dict[counter] = (el,val)
+            counter += 1
+        else:
+            # if word doesn't meet treshold -> not in training
+            second_list.append((el,val,iterator,1))
+        iterator += 1
+    # create new dict_path
+    z = path.splitext(path.basename(dict_path))
+    output_file = path.dirname(dict_path) + "/" + z[0] + "_small" + z[1]
+    with open(output_file,"w",newline='', encoding= "utf-8") as new_dict_file:
+        writer = csv.writer(new_dict_file, delimiter = "\t")
+        writer.writerows(new_dict.values())
+
+    return_list = {old_index:(word, doc_freq, new_index) for word, doc_freq, old_index ,new_index in second_list}
+
+    return return_list, output_file
+
+def smallerText(texts, new_dict):
+
+    out_texts = []
+    for text in texts:
+        temp_text_list = []
+        for word in text:
+            temp_text_list.append(new_dict.get(word)[2])
+        out_texts.append(temp_text_list)
+
+    return out_texts
+
+
 """
 # analyse cmdlineargs
 for arg in sys.argv:
