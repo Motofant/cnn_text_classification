@@ -290,36 +290,6 @@ def saveCat(path, data, prep, code, name):
     
     return True
 
-def saveDataSplit_old(ord_enc_data, train, pre_proc, encoding, directory, batchsize):
-    # ord_enc_data: Data without encoding
-    # directory: directory to save output files.
-    # batchsize: number of texts in one file
-
-    ## split list into multiple lists of batchsize
-    split_lists = [ord_enc_data[i:i+batchsize] for i in range(0,len(ord_enc_data), batchsize)]
-
-    ## Save splited lists in different files.
-    ## Save names to ID List
-
-    file_IDs = []
-    
-    file_name = ""
-    if train:
-        file_name = "train_" + str(pre_proc) + "_" + str(encoding) + "_"
-    else: 
-        file_name = "test_" + str(pre_proc) + "_" + str(encoding) + "_"
-    
-    iter = 0
-    for p_o_list in split_lists:
-        # Generate ID
-        path = directory + file_name + str(iter) + ".csv"
-        file_IDs.append(file_name + str(iter))
-        iter += 1
-
-        pd.DataFrame(p_o_list).to_csv(path, sep = "\t", header= None, index=False)        
-
-    return file_IDs
-
 def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batchsize, vec_l, word_l, filler):
     # ord_enc_data: Data without encoding
     # directory: directory to save output files.
