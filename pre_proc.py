@@ -90,13 +90,44 @@ def fillText(num_arr_total, text_l):
 
 def fillTextRepeat(num_arr_total, text_l):
     output = []
-    for num_arr in num_arr_total:      
-        i = len(num_arr)
-        j = (text_l % i)
-        output.append(num_arr * (int(text_l / i)) +num_arr[:j])
+    try:
+        for num_arr in num_arr_total:      
+            i = len(num_arr)
+            j = (text_l % i)
+            output.append(num_arr * (int(text_l / i)) +num_arr[:j])
+    except ZeroDivisionError:
+        logger.info(ZeroDivisionError)
+    
     return output
 
 # used for categorizing as well
+def encodeDictCat(texts, diction, cat_len):
+    encoded_text = []
+    for text in texts:
+        single_text = []
+        for word in text:
+            dict_word = diction.get(word, None)
+            if dict_word == None:
+                # add neutral element
+                dict_word = [0]*cat_len
+
+            single_text.append(dict_word)
+        encoded_text.append(single_text)
+    
+    return encoded_text
+
+def buildDictCat(texts, cats_of_texts, cat_len, diction):
+    iterator = 0
+    for text in texts:
+        for word in text:
+            if diction.get(word, None) == None:
+                # create new element
+                diction[word] = [0]*cat_len
+            
+            # update 
+            diction[word][cats_of_texts[iterator]] += 1
+        iterator += 1
+    return diction
 
 def dictionary(path, tot_text, training, text_length):
     # returns fixedsized numberarray

@@ -12,11 +12,11 @@ from re import search
 import spacy
 import tensorflow as tf
 from data_gen import DataGenerator
-#np.set_printoptions(threshold=sys.maxsize) # just for tests
+np.set_printoptions(threshold=sys.maxsize) # just for tests
 # TODO: variable configlocation
 
 ## Init logging 
-logging.basicConfig(filename='./Pipeline_time_test.log',format= "%(asctime)s :: %(relativeCreated)d ms :: %(levelname)s :: %(module)s.%(funcName)s :: %(message)s", level=logging.DEBUG)
+logging.basicConfig(filename='./Pipeline_time.log',format= "%(asctime)s :: %(relativeCreated)d ms :: %(levelname)s :: %(module)s.%(funcName)s :: %(message)s", level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.info("------------------------------------------")
 logger.info("Starting Pipeline")
@@ -41,7 +41,7 @@ dict_size_treshold = 5
 text_count = 0
 # max words in text
 word_max = 0 # used for fill word 
-bar = 0.1
+bar = 0.01
 #word in dictionary -> only for testingpurposes
 #dict_size = 0
 # fix textsize 
@@ -61,11 +61,12 @@ preproc = 3
     # 0 = no coding -> ordinal encoded
     # 1 = bag of words
     # 2 = one Hot
+    # 3 = word 2 vec
 coding = 1
 final_set  = True
 loaded_config = "def"
 
-batch_size = 400
+batch_size = 1
 
 # files
 stop_word_dir = './stopword/'
@@ -118,6 +119,40 @@ def dictLen(path):
             dict_len += 1
     return dict_len
 
+def saveOutFile(texts,classes, dic_file):
+    with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
+        writer = csv.writer(dictFile, delimiter = "\t")
+        iterator = 0
+        for cat in classes:
+            writer.writerow([cat]+[item for sublist in texts[iterator] for item in sublist])
+            iterator += 1
+
+    return True
+
+def loadOutFile(dic_file,len_class):
+    classes = []
+    texts = []
+    with open(dic_file, mode="r",newline='',encoding="utf8") as dictFile:
+        reader = csv.reader(dictFile,delimiter= "\t")
+        for row in reader:
+            classes.append(row[0])
+            #texts.append([int(el) for el in row[1:]])
+            texts.append([list(map(int,row[idx : idx+len_class])) for idx in range(1,len(row),len_class)])
+    return texts , classes
+
+def saveDictCat(diction, dic_file):
+    with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
+        writer = csv.writer(dictFile, delimiter = "\t")
+        for key in diction.keys():
+            writer.writerow([key]+[item for sublist in [diction[key]] for item in sublist])
+    return True
+
+def loadDictCat(dic_file,cat_size):
+    with open(dic_file, mode='r',encoding= "utf8") as inp:
+        reader = csv.reader(inp,delimiter= "\t")
+        dict_from_csv = {rows[0]:list(map(int, rows[1:cat_size+1])) for rows in reader}   
+    return dict_from_csv
+
 def catTransform(cat):
     return [el for l in cat for el in l[1:]]
 
@@ -131,13 +166,13 @@ def deleteSaves(save_dir, preproc, encoding):
             remove(save_dir + i)
     return True
     
-def resetVar():
+def resetVar(training):
     
     # reset global variables
     global word_max, text_count
-    word_max = 0
-    text_count = 0 
-
+    if not training:
+        word_max = 0
+    text_count = 0
     return True
 
 def calcUnknownWords():
@@ -168,7 +203,7 @@ def readFile(in_file, train):
     logger.info("Inputfile reading concluded")
     return file_in,category#, len(file_in)
 
-def textAna(text_in, prep_mode, fix_size,dictio, train, text_len):
+def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat_len):
     logger.info("general textanalysis starting")
     preproc_out = []
     total_text = []
@@ -203,7 +238,17 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len):
     # encode text with dictionary
 
     # TODO check output 
-    preproc_out = p.dictionary(dictio,total_text, train, text_len)
+    if coding == 3:
+        # TODO: do fill -> encode to ordinal -> change encoding later
+        
+        dictionary = p.buildDictCat(total_text,categories,cat_len,loadDictCat(dictio, cat_len))
+        preproc_out = p.encodeDictCat(total_text,dictionary,cat_len)
+        #preproc_out = p.fillText(preproc_out,1200)
+        saveDictCat(dictionary, dictio)
+        saveOutFile(preproc_out, categories, out_file_dir)
+        exit()
+    else:
+        preproc_out = p.dictionary(dictio,total_text, train, text_len)
     
     logger.info("general textanalysis concluded")
     return preproc_out
@@ -222,6 +267,7 @@ def texAnaTfIdf(text_in,dictio,border,text_number):
 def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
     ## Bag of words
     # static size -> fillword not needed
+    
     logger.info("encoding started")
     arr_out = []
     if code == 1:
@@ -307,7 +353,7 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
     file_name = ""
     if train:
         file_name = "train_" + str(pre_proc) + "_" + str(encoding) + "_"
-
+        
         iter = 0
         for p_o_list in split_lists:
             # encode part of total texts        
@@ -460,10 +506,12 @@ if __name__ == "__main__":
         # 
         if arg == "-fill":
             try:
-                fix_size_param = int(sys.argv[iterator+1])
+                print(sys.argv[iterator+2])
+                fix_size_param = int(sys.argv[iterator+2])
+
             except ValueError:
-                logger.debug("-fill got bad value, continue with 0")
-                fix_size_param = 0
+                logger.debug("-fill got bad value, continue with 2")
+                fix_size_param = 2
             continue
 
         # Inputfile is not the final input
@@ -540,7 +588,7 @@ if __name__ == "__main__":
             saveCat(topic_file, cat,  preproc,coding, file_name)
 
         # call function wordcut + preprocessing
-        analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max)
+        analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max, cat[1:], len(classes))
 
 
         # TODO: change that in final set no save needed 
@@ -579,7 +627,7 @@ if __name__ == "__main__":
 
             for f in listdir(save_file_dir):
                 g = getFilename(f)
-
+                
                 if file_parameter in g:
                     # load textfile
                     texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
@@ -644,7 +692,7 @@ if __name__ == "__main__":
             # TODO: save file_ID
             config_input[0] = text_count
             config_input[4] = dic_file
-            resetVar()
+            resetVar(training)
             saveShutdown(loaded_config,config_input)
             if delete_saves:
                 deleteSaves(save_file_dir,preproc,coding)
@@ -723,7 +771,7 @@ if __name__ == "__main__":
             for i in prediction:
                 print(cc.showResult(i,classes).draw())
                 i += 1
-        resetVar()
+        resetVar(training)
         if delete_saves:
             deleteSaves(save_file_dir,preproc,coding)
 
