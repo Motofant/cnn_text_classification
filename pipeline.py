@@ -36,7 +36,7 @@ text_vec_l = 1200
 word_vec_l = 1 
 load_nn = False
 class_number = 9
-dict_size_treshold = 5
+dict_size_treshold = 0
 # number of all texts
 text_count = 0
 # max words in text
@@ -66,7 +66,7 @@ coding = 1
 final_set  = True
 loaded_config = "def"
 
-batch_size = 1
+batch_size = 900
 
 # files
 stop_word_dir = './stopword/'
@@ -118,40 +118,6 @@ def dictLen(path):
         for row in reader:
             dict_len += 1
     return dict_len
-
-def saveOutFile(texts,classes, dic_file):
-    with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
-        writer = csv.writer(dictFile, delimiter = "\t")
-        iterator = 0
-        for cat in classes:
-            writer.writerow([cat]+[item for sublist in texts[iterator] for item in sublist])
-            iterator += 1
-
-    return True
-
-def loadOutFile(dic_file,len_class):
-    classes = []
-    texts = []
-    with open(dic_file, mode="r",newline='',encoding="utf8") as dictFile:
-        reader = csv.reader(dictFile,delimiter= "\t")
-        for row in reader:
-            classes.append(row[0])
-            #texts.append([int(el) for el in row[1:]])
-            texts.append([list(map(int,row[idx : idx+len_class])) for idx in range(1,len(row),len_class)])
-    return texts , classes
-
-def saveDictCat(diction, dic_file):
-    with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
-        writer = csv.writer(dictFile, delimiter = "\t")
-        for key in diction.keys():
-            writer.writerow([key]+[item for sublist in [diction[key]] for item in sublist])
-    return True
-
-def loadDictCat(dic_file,cat_size):
-    with open(dic_file, mode='r',encoding= "utf8") as inp:
-        reader = csv.reader(inp,delimiter= "\t")
-        dict_from_csv = {rows[0]:list(map(int, rows[1:cat_size+1])) for rows in reader}   
-    return dict_from_csv
 
 def catTransform(cat):
     return [el for l in cat for el in l[1:]]
@@ -240,13 +206,33 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
     # TODO check output 
     if coding == 3:
         # TODO: do fill -> encode to ordinal -> change encoding later
+        # add ordinal encoding to build DictCat 
+        if train:
+            dictionary, ord_enc_text = p.buildDictCat(total_text,categories,cat_len,p.loadDictCat(dictio, cat_len),dic_file,train)
+            preproc_out = p.fillText(ord_enc_text,1200)
+            logger.info("encoding started")
+            preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
+            logger.info("encoding ended")
+            del dictionary
+            p.saveOutFile(preproc_out, categories, out_file_dir)
+            logger.info("done")
+            exit()
+        else:
+            dictionary, ord_enc_text = p.buildDictCat(total_text,[],cat_len, p.loadDictCat(dictio, cat_len),dictio, train)
+    
+            preproc_out = p.fillText(ord_enc_text,1200)
+            logger.info("encoding started")
+            
+            preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
+            logger.info("encoding ended")
+            p.saveOutFile_test(preproc_out, out_file_dir)
+            logger.info("done")
+            exit()
         
-        dictionary = p.buildDictCat(total_text,categories,cat_len,loadDictCat(dictio, cat_len))
-        preproc_out = p.encodeDictCat(total_text,dictionary,cat_len)
-        #preproc_out = p.fillText(preproc_out,1200)
-        saveDictCat(dictionary, dictio)
-        saveOutFile(preproc_out, categories, out_file_dir)
-        exit()
+        #print(len(preproc_out[0]))
+        #saveDictCat(dictionary, dictio)
+        
+
     else:
         preproc_out = p.dictionary(dictio,total_text, train, text_len)
     

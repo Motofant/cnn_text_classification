@@ -13,6 +13,7 @@ import logging # TODO
 from texttable import Texttable
 import pre_proc as p 
 from data_gen import DataGenerator
+import os
 #import sklearn.model_selection as sms
 
 
@@ -47,14 +48,20 @@ weight_save = "./weight/weight.h5"
 weight_save = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/weight/weight.h5"
 
 # input
-training = True
+training = False
 load_nn = not training
 input_file = ""
+fp = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/gb/"
 if training:
-    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/train_0_0_0.csv"
+    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/nw2v/oute.csv"
+    
+    #input_files = [f for f in os.listdir(fp) if "train" in f]
+    #print(input_files)
+    #exit()
 else:
-    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/test_0_0_0.csv"
+    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/nw2v/out.csv"
 
+    #exit()
 
 
 
@@ -63,8 +70,8 @@ else:
 one_hot = False
 
 # inputparams
-Text_length = 1200 # also bowlength
-word_vec_length = 1 # only not 1 in oneHot
+Text_length = 1200*9 # also bowlength
+word_vec_length = 9 # only not 1 in oneHot
 
 cat_size = 9
 
@@ -73,7 +80,8 @@ input_categories = np.array([]) # only when trainingsdata
 input_text = np.array([])
 
 # Neural Network
-nn_input_size = (1200, 1)
+nn_input_size = (1200, 9)
+#nn_input_size = (8484, 1)
 #endregion
 
 #### Functions ####
@@ -102,11 +110,14 @@ def readFile(input_file, train, text_l, word_l,cat_size):
     if train:
         in_cat = pd.read_table(input_file,usecols=[0],header = None).to_numpy()
         in_text = pd.read_table(input_file,usecols=list(range(text_l+1))[1:],header = None).to_numpy()
+        
+        print(len(in_text[0]))
     else:
         in_cat = []
         in_text = pd.read_table(input_file,header = None).to_numpy()
+        breakpoint()
     
-    return  in_text.reshape((in_text.shape[0],text_l,word_l)),keras.utils.to_categorical(in_cat,cat_size)
+    return  in_text.reshape((in_text.shape[0],1200,word_l)),keras.utils.to_categorical(in_cat,cat_size)
 
 def visualHist(history):
     
@@ -197,7 +208,7 @@ if __name__ == "__main__":
     else:
         ## use Vector
         pass 
-
+        #print(len(input_text[0]))
     if one_hot:
         input_text = keras.utils.to_categorical(input_text,word_vec_l)
         #input_text = keras.utils.to_categorical(input_text,278504,dtype="int8")
@@ -206,7 +217,7 @@ if __name__ == "__main__":
         #input_text = p.oneHot(input_text,278504,0)
     # create CNN
     model = newNetwork(nn_input_size)
-
+    print(input_text.shape)
         ## if already used -> use weights
     if load_nn:
         model.load_weights(weight_save)
@@ -223,12 +234,16 @@ if __name__ == "__main__":
         
         ## training -> save weights in the end -> non result needed
             ### TODO: change epoches/batchsize ? 
-        history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
+        history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=15, batch_size=10)
+        
+        
+        #trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, 100,1)
+        #history = model.fit_generator(generator= trainings_train_gen, epochs =15, workers=4)        
             ### TODO: show accc improvement? 
             ### update weights
         model.save_weights(weight_save)
-        accuracy = model.evaluate(input_text,valid_class)
-        print(accuracy)
+        #accuracy = model.evaluate(input_text,valid_class)
+        #print(accuracy)
         visualHist(history)
     else:
         ## test -> no save requiered (no weight updates) -> Show result

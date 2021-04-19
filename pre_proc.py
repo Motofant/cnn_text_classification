@@ -101,7 +101,96 @@ def fillTextRepeat(num_arr_total, text_l):
     return output
 
 # used for categorizing as well
+
+def buildDictCat(texts, cats_of_texts, cat_len, diction,dict_file, train):
+    iterator = 0
+    out_texts = []
+    text_trans= {x:i for i,x in enumerate(diction)}
+    if train:
+        for text in texts:
+            temp_text = []
+            for word in text:
+                if diction.get(word, None) == None:
+                    # create new element
+                    diction[word] = [0]*cat_len
+                    text_trans[word] = len(text_trans)
+                    
+                # update 
+                diction[word][cats_of_texts[iterator]] += 1
+                temp_text.append(text_trans.get(word))
+
+            out_texts.append(temp_text)
+            iterator += 1
+        saveDictCat(diction, dict_file)
+    else:
+        for text in texts:
+            temp_text = []
+            for word in text:
+                temp_text.append(text_trans.get(word,1))
+
+            out_texts.append(temp_text)
+
+    return {i:x for i,x in enumerate(diction.values())}, out_texts
+
 def encodeDictCat(texts, diction, cat_len):
+    encoded_text = []
+    for text in texts:
+        single_text = []
+        for word in text:
+
+            dict_word = diction.get(word, None)
+            if dict_word == None:
+                # add neutral element
+                dict_word = [0]*cat_len
+
+            single_text.append(dict_word)
+        encoded_text.append(single_text)
+    
+    return encoded_text
+
+def saveOutFile(texts,classes, dic_file):
+    with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
+        writer = csv.writer(dictFile, delimiter = "\t")
+        iterator = 0
+        for cat in classes:
+            
+            writer.writerow([cat]+[item for sublist in texts[iterator] for item in sublist])
+            iterator += 1
+
+    return True
+
+def loadOutFile(dic_file,len_class):
+    classes = []
+    texts = []
+    with open(dic_file, mode="r",newline='',encoding="utf8") as dictFile:
+        reader = csv.reader(dictFile,delimiter= "\t")
+        for row in reader:
+            classes.append(row[0])
+            #texts.append([int(el) for el in row[1:]])
+            texts.append([list(map(int,row[idx : idx+len_class])) for idx in range(1,len(row),len_class)])
+    return texts , classes
+
+def saveDictCat(diction, dic_file):
+    with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
+        writer = csv.writer(dictFile, delimiter = "\t")
+        for key in diction.keys():
+            writer.writerow([key]+[item for sublist in [diction[key]] for item in sublist])
+    return True
+
+def saveOutFile_test(tot_text, out_file):
+    with open(out_file, mode="w",newline='',encoding="utf8") as dictFile:
+        writer = csv.writer(dictFile, delimiter = "\t")
+        for text in tot_text:
+            writer.writerow([item for sublist in text for item in sublist])
+    return True
+
+def loadDictCat(dic_file,cat_size):
+    with open(dic_file, mode='r',encoding= "utf8") as inp:
+        reader = csv.reader(inp,delimiter= "\t")
+        dict_from_csv = {rows[0]:list(map(int, rows[1:cat_size+1])) for rows in reader}   
+    return dict_from_csv
+
+def encodeDictCat_test(texts, diction, cat_len):
     encoded_text = []
     for text in texts:
         single_text = []
@@ -116,7 +205,23 @@ def encodeDictCat(texts, diction, cat_len):
     
     return encoded_text
 
-def buildDictCat(texts, cats_of_texts, cat_len, diction):
+
+def encodeDictCat_old(texts, diction, cat_len):
+    encoded_text = []
+    for text in texts:
+        single_text = []
+        for word in text:
+            dict_word = diction.get(word, None)
+            if dict_word == None:
+                # add neutral element
+                dict_word = [0]*cat_len
+
+            single_text.append(dict_word)
+        encoded_text.append(single_text)
+    
+    return encoded_text
+
+def buildDictCat_old(texts, cats_of_texts, cat_len, diction):
     iterator = 0
     for text in texts:
         for word in text:
