@@ -361,6 +361,18 @@ def bagOfWords(text_lists,l_size):
     for text in text_lists:
         counted_word = Counter({x:0 for x in range(l_size)})
         counted_word.update(Counter(text))
+        x = np.asarray(list(dict(sorted(counted_word.items())).values()))
+        x = x/len(text)
+        bow_lists.append(list(x))
+    
+    return bow_lists
+
+def bagOfWords_old(text_lists,l_size):
+    # create Output list
+    bow_lists = []
+    for text in text_lists:
+        counted_word = Counter({x:0 for x in range(l_size)})
+        counted_word.update(Counter(text))
 
         bow_lists.append(list(dict(sorted(counted_word.items())).values()))
     

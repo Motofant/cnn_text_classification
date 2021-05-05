@@ -25,7 +25,7 @@ tf.compat.v1.disable_eager_execution() # to prevent tf-bug with inputdata (anugr
 #region
 # Pipelinevariables
 ## already in pipeline-> not needed when porting
-training = False
+
 
 
 ## new variables
@@ -53,14 +53,14 @@ load_nn = not training
 input_file = ""
 fp = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/gb/"
 if training:
-    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/nw2v/oute.csv"
+    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/ww2v/oute.csv"
     
-    #input_files = [f for f in os.listdir(fp) if "train" in f]
+    input_files = [f for f in os.listdir(fp) if "train" in f]
     #print(input_files)
     #exit()
 else:
-    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/nw2v/out.csv"
-
+    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/gb/test_2_1_0.csv"
+    pass
     #exit()
 
 
@@ -70,8 +70,9 @@ else:
 one_hot = False
 
 # inputparams
-Text_length = 1200*9 # also bowlength
-word_vec_length = 9 # only not 1 in oneHot
+Text_length = 8487 #also bowlength
+
+word_vec_length = 1 # only not 1 in oneHot
 
 cat_size = 9
 
@@ -80,8 +81,9 @@ input_categories = np.array([]) # only when trainingsdata
 input_text = np.array([])
 
 # Neural Network
+#nn_input_size = (581, 1)
 nn_input_size = (1200, 9)
-#nn_input_size = (8484, 1)
+nn_input_size = (8487, 1)
 #endregion
 
 #### Functions ####
@@ -106,18 +108,16 @@ def showResult(prediction, classes):
     return table 
 
 def readFile(input_file, train, text_l, word_l,cat_size):
-
     if train:
         in_cat = pd.read_table(input_file,usecols=[0],header = None).to_numpy()
         in_text = pd.read_table(input_file,usecols=list(range(text_l+1))[1:],header = None).to_numpy()
-        
         print(len(in_text[0]))
     else:
         in_cat = []
         in_text = pd.read_table(input_file,header = None).to_numpy()
-        breakpoint()
+        
     
-    return  in_text.reshape((in_text.shape[0],1200,word_l)),keras.utils.to_categorical(in_cat,cat_size)
+    return  in_text.reshape((in_text.shape[0],text_l,word_l)),keras.utils.to_categorical(in_cat,cat_size)
 
 def visualHist(history):
     
@@ -138,7 +138,144 @@ def visualHist(history):
     plt.legend(['dense_loss'], loc='upper right')
     plt.show()
 
+def newNetwork_old(in_shape):
+    ## create network (save)
+    # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
+    # https://keras.io/examples/nlp/pretrained_word_embeddings/
+
+
+    model = Sequential()
+    
+    model.add(Conv1D(64,3,input_shape=in_shape,activation="relu",padding="valid"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    
+    
+    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(pool_size = 3))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    
+    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+     
+    model.add(Conv1D(64,3, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+            
+
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+       
+    model.add(Conv1D(64,5, activation="relu",padding="valid"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization()) # nötig damit nicht 0,1111
+    #model.add(Dropout(0.3))
+        
+    #model.add(GlobalMaxPooling1D())
+    model.add(keras.layers.Flatten())
+
+    model.add(Dense(9,activation="softmax"))
+
+    #optimizer = keras.optimizers.Adam(lr=0.001)
+    optimizer = keras.optimizers.Adam()
+
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
+    print("compiled succesfully")
+
+    return model
+
 def newNetwork(in_shape):
+
+    model = Sequential()
+
+    model.add(Conv1D(512,10,10, input_shape=in_shape,activation="sigmoid",padding="same"))
+    #model.add(MaxPooling1D(10,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+
+    model.add(Conv1D(128,3,activation="sigmoid",padding="same"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))    
+
+    model.add(Conv1D(128,3,activation="sigmoid",padding="same"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))     
+    '''
+    model.add(Conv1D(512,10,activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    
+    model.add(Conv1D(512,10,activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    
+    model.add(Conv1D(512,10,activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    model.add(Dropout(0.3))
+    model.add(Conv1D(512,10, input_shape=in_shape,activation="relu",padding="same"))
+    model.add(MaxPooling1D(10,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    
+    model.add(Conv1D(512,10,activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+
+    model.add(Conv1D(512,10,activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    
+    model.add(Conv1D(512,10,activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    '''
+    '''
+    model.add(Conv1D(64,20,5, activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    model.add(Dropout(0.3))
+
+    model.add(Conv1D(64,20,5, activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    model.add(Dropout(0.3))
+
+    model.add(Conv1D(64,20,5, activation="relu",padding="same"))
+    model.add(MaxPooling1D(5,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    model.add(Dropout(0.3))
+    '''
+    model.add(keras.layers.Flatten())
+    model.add(Dense(9,activation="softmax"))
+    optimizer = keras.optimizers.Adam()
+    optimizer = keras.optimizers.Adam(lr=0.0001)
+
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
+    print("compiled succesfully")
+    
+    return model
+
+def newNetwork_w2v(in_shape):
     ## create network (save)
     # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
     # https://keras.io/examples/nlp/pretrained_word_embeddings/
@@ -146,50 +283,37 @@ def newNetwork(in_shape):
 
     model = Sequential()
 
-    model.add(Conv1D(64,3,input_shape=in_shape,activation="relu",padding="valid"))
+    model.add(Conv1D(64,36,dilation_rate=9,input_shape=in_shape,activation="relu",padding="valid"))
+    model.add(MaxPooling1D(2,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    '''    
+    model.add(Conv1D(64,3,activation="relu",padding="valid"))
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-    
-    
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(pool_size = 3))
+    '''
+    '''
+    model.add(Conv1D(64,9,activation="relu",padding="valid"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-    
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-     
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-            
 
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-    
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.5))
-       
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
+
+    model.add(Conv1D(64,9,activation="relu",padding="valid"))
     model.add(MaxPooling1D(3,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization()) # nötig damit nicht 0,1111
-    #model.add(Dropout(0.5))
-        
+    model.add(keras.layers.BatchNormalization())
+    '''
+      
     #model.add(GlobalMaxPooling1D())
-
+    
     model.add(keras.layers.Flatten())
-    model.add(Dropout(0.5))
-    model.add(Dense(9, activation="softmax"))
+    #model.add(Dropout(0.5))
 
-    model.compile( loss='categorical_crossentropy', optimizer="adam", metrics=['accuracy'],experimental_run_tf_function=False)
+    model.add(Dense(9, activation="softmax"))
+    
+    optimizer = keras.optimizers.Adam(lr=0.0001)
+    
+    model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
+    #model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
+
     print("compiled succesfully")
 
     return model
@@ -204,6 +328,7 @@ if __name__ == "__main__":
     # check where data is comming from
     if data_from_file:
         input_text, valid_class = readFile(input_file, training, Text_length, word_vec_length,cat_size)
+        
         pass
     else:
         ## use Vector
@@ -217,7 +342,7 @@ if __name__ == "__main__":
         #input_text = p.oneHot(input_text,278504,0)
     # create CNN
     model = newNetwork(nn_input_size)
-    print(input_text.shape)
+    #print(input_text.shape)
         ## if already used -> use weights
     if load_nn:
         model.load_weights(weight_save)
@@ -234,11 +359,12 @@ if __name__ == "__main__":
         
         ## training -> save weights in the end -> non result needed
             ### TODO: change epoches/batchsize ? 
-        history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=15, batch_size=10)
+        #history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=7, batch_size=50)
         
         
-        #trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, 100,1)
-        #history = model.fit_generator(generator= trainings_train_gen, epochs =15, workers=4)        
+        trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, 50,1)
+        print("train data gen done")
+        history = model.fit_generator(generator= trainings_train_gen, epochs =3)#, workers=4)        
             ### TODO: show accc improvement? 
             ### update weights
         model.save_weights(weight_save)

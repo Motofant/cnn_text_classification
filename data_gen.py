@@ -21,13 +21,14 @@ class DataGenerator(keras.utils.Sequence):
         self.on_epoch_end()
 
     def readFile(self, input_file, directory, encoding, text_l, word_l ,n_classes):
-        path = directory + input_file + ".csv"
+        path = directory + input_file #+ ".csv"
         in_cat = pd.read_table(path,usecols=[0],header = None).to_numpy()
         in_text = pd.read_table(path,usecols=list(range(text_l+1))[1:],header = None).to_numpy()
+        #in_text = pd.read_table(path,usecols=list(range(text_l+1))[3:],header = None).to_numpy()
         
         # Bag of Words
         if encoding == 1:
-            in_text = np.reshape(np.array(bagOfWords(in_text, text_l)), (len(in_cat),self.dim, self.n_channels))
+            in_text = np.reshape(np.array(in_text), (len(in_cat),self.dim, self.n_channels))
         # One Hot
         elif encoding == 2:
             # TODO: think about reading fct

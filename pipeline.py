@@ -28,7 +28,7 @@ logger.info("Starting Pipeline")
 training = False
 config_load = False
 just_encode = True
-delete_saves = True
+delete_saves = False
 # TODO: change classes from read topics
 classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
 # networkvar TODO: add to ini
@@ -36,7 +36,7 @@ text_vec_l = 1200
 word_vec_l = 1 
 load_nn = False
 class_number = 9
-dict_size_treshold = 0
+dict_size_treshold = 5
 # number of all texts
 text_count = 0
 # max words in text
@@ -209,7 +209,8 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
         # add ordinal encoding to build DictCat 
         if train:
             dictionary, ord_enc_text = p.buildDictCat(total_text,categories,cat_len,p.loadDictCat(dictio, cat_len),dic_file,train)
-            preproc_out = p.fillText(ord_enc_text,1200)
+            #preproc_out = p.fillText(ord_enc_text,1200)
+            preproc_out = p.fillTextRepeat(ord_enc_text,1200)
             logger.info("encoding started")
             preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
             logger.info("encoding ended")
@@ -219,8 +220,9 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
             exit()
         else:
             dictionary, ord_enc_text = p.buildDictCat(total_text,[],cat_len, p.loadDictCat(dictio, cat_len),dictio, train)
-    
-            preproc_out = p.fillText(ord_enc_text,1200)
+            
+            #preproc_out = p.fillText(ord_enc_text,1200)
+            preproc_out = p.fillTextRepeat(ord_enc_text,1200)
             logger.info("encoding started")
             
             preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
@@ -671,6 +673,10 @@ if __name__ == "__main__":
         #saveData(out_file_dir,final_output, training, preproc, coding, "")
         transformed_cats = catTransform(cats)
         # 
+        dict_length = p.getDictionaryLength(dic_file)
+        print(dict_length)
+        vec_l = dict_length if coding == 1 else word_max
+        word_l = dict_length if coding == 2 else 1
         file_ID_list = saveDataSplit(texts_list, transformed_cats,training, preproc, coding, out_file_dir, batch_size,vec_l,word_l,fix_size_param)
         logger.info("All preparations (Textanalysis and Preprocessing) concluded.")
 
