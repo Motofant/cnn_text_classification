@@ -200,75 +200,15 @@ def newNetwork(in_shape):
 
     model = Sequential()
 
-    model.add(Conv1D(512,10,10, input_shape=in_shape,activation="sigmoid",padding="same"))
-    #model.add(MaxPooling1D(10,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-
-    model.add(Conv1D(128,3,activation="sigmoid",padding="same"))
+    model.add(Conv1D(128,3,input_shape=in_shape,activation="sigmoid",padding="same"))
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))    
-
-    model.add(Conv1D(128,3,activation="sigmoid",padding="same"))
-    model.add(MaxPooling1D(3,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))     
-    '''
-    model.add(Conv1D(512,10,activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    
-    model.add(Conv1D(512,10,activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    
-    model.add(Conv1D(512,10,activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    model.add(Dropout(0.3))
-    model.add(Conv1D(512,10, input_shape=in_shape,activation="relu",padding="same"))
-    model.add(MaxPooling1D(10,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    
-    model.add(Conv1D(512,10,activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.3))
 
-    model.add(Conv1D(512,10,activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    
-    model.add(Conv1D(512,10,activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    '''
-    '''
-    model.add(Conv1D(64,20,5, activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    model.add(Dropout(0.3))
-
-    model.add(Conv1D(64,20,5, activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    model.add(Dropout(0.3))
-
-    model.add(Conv1D(64,20,5, activation="relu",padding="same"))
-    model.add(MaxPooling1D(5,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    model.add(Dropout(0.3))
-    '''
     model.add(keras.layers.Flatten())
     model.add(Dense(9,activation="softmax"))
     optimizer = keras.optimizers.Adam()
-    optimizer = keras.optimizers.Adam(lr=0.0001)
+    #optimizer = keras.optimizers.Adam(lr=0.0001)
 
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
     print("compiled succesfully")
@@ -364,7 +304,7 @@ if __name__ == "__main__":
         
         trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, 50,1)
         print("train data gen done")
-        history = model.fit_generator(generator= trainings_train_gen, epochs =3)#, workers=4)        
+        history = model.fit_generator(generator= trainings_train_gen, epochs =7)#, workers=4)        
             ### TODO: show accc improvement? 
             ### update weights
         model.save_weights(weight_save)

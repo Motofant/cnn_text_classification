@@ -88,7 +88,14 @@ file_name = ""
 #endregion
 
 # create new stuff
+
 def newProfil(config, name, data):
+    ## creates new configuration
+
+    # config:   string, directory of config file
+    # name:     string, name of new directory
+    # data:     list of var, starting values for new config
+
     # check wether profil  allready exits
     if c.existProf(config,name):
         logging.warning("Profilname already used")
@@ -103,6 +110,12 @@ def newProfil(config, name, data):
     return "Profil created succesfully."
 
 def newDictionary(path, name):
+    ## creates new dictionary
+    ## return path of new dictionary
+    
+    # path:     string, directory of new dictionary
+    # name:     string, name of new dictionary
+     
     file_name = path +"/"+name+ "_dictionary.csv"
     with open(file_name, mode='w+', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
@@ -112,6 +125,10 @@ def newDictionary(path, name):
 
 # helping Function
 def dictLen(path):
+    ## returns number of words in input dictionary file
+
+    # path: string, path of dictionary
+
     dict_len  = 0 
     with open(path, mode=p.pathExists(path), newline='',encoding= "utf8") as dictFile:
         reader = csv.reader(dictFile, delimiter='\t', quotechar=',', quoting=csv.QUOTE_MINIMAL)        
@@ -120,21 +137,38 @@ def dictLen(path):
     return dict_len
 
 def catTransform(cat):
+    ## returns categories as list of ints by removing first element
+
+    # cats:     list of one string and ints, categories of train data with original filename
+
     return [el for l in cat for el in l[1:]]
 
 def getFilename(input_path):
+    ## removes directory and filextension from filepath
+
+    # input_path:   string, path to transform
+
     return path.splitext(path.basename(input_path))[0]
 
-
 def deleteSaves(save_dir, preproc, encoding):
+    ## deletes temporary savefiles to avoid error when config is used again
+
+    # save_dir:     string, directory of temporary savefiles
+    # preproc:      int, type of preprocessing
+    # encoding:     int, type of encoding
+
     for i in listdir(save_dir):
         if search('t.*_'+str(preproc)+'_'+str(encoding)+'.*.csv',i):
             remove(save_dir + i)
     return True
     
 def resetVar(training):
-    
-    # reset global variables
+    ## resets certain variables of config
+    ## used on variables which change during preprocessing and encoding
+
+    # train:    boolean, if data is train or test set
+    #                    if true word_max (length of texts) cant be reseted because of length of testdata 
+
     global word_max, text_count
     if not training:
         word_max = 0
@@ -142,10 +176,19 @@ def resetVar(training):
     return True
 
 def calcUnknownWords():
+    # TODO: 
     pass
 
+
 # actually relevant for Pipeline
+
 def readFile(in_file, train):
+    ## returns texts listed in in_file
+    ## if texts are train-data returns class of text too
+    
+    # in_file: string containing directory and filename of used file
+    # train: boolean defining wether there are textcategories to return 
+
     file_in = []
     category = []
     logger.info("Start reading Inputfile")
@@ -170,6 +213,19 @@ def readFile(in_file, train):
     return file_in,category#, len(file_in)
 
 def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat_len):
+    ## takes texts, calls preprocessingfunctions
+    ## returns nested list of ordinal encoded texts
+
+    # text_in:      list of strings, 1 string == 1 text
+    # prep_mode:    int, representing mode of preprocessing
+    # fix_size:     int, representing type of sizefixing 
+    # dictio:       string, containing path of dictionary file
+    # train:        boolean, if data is train or test set
+    # text_len:     int, number of allowed words in text
+    # categories:   list of ints, integers representing class of text
+    #                             if training = False -> empty list
+    # cat_len:      int, number of possible classes 
+
     logger.info("general textanalysis starting")
     preproc_out = []
     total_text = []
@@ -241,24 +297,29 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
     logger.info("general textanalysis concluded")
     return preproc_out
 
-def texAnaTfIdf(text_in,dictio,border,text_number):
-    # TODO: Test if working for single text
-
-    logger.info("TF IDF started")
-
-
-    preproc_out = p.tfIdf(text_in,dictio, border, text_number)
-
-    logger.info("TF IDF concluded")
-    return preproc_out
-
 def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
+    ## takes texts as nested list of ints
+    ## encodes texts
+
+    # arr_in:       nested list of ints, represents batch of ordinal encoded texts
+    # code:         int, representing encodingtype
+    # fill_param:   int, representing way to get text to needed size
+    # vec_l:        int, length of vector representing a text
+    #                    for ordinal encoding -> textlength
+    #                    for BOW -> length of used dictionary
+    # word_l:       int, length of vector representing single word
+    #                    for ordinal encoding/BOW -> 1
+    #                    for w2v -> n_o_classes, OneHot -> length of used dictionary
+
+
     ## Bag of words
     # static size -> fillword not needed
     
     logger.info("encoding started")
     arr_out = []
     if code == 1:
+        ## Bag of words
+        # static size -> fillword not needed
         arr_out = p.bagOfWords(arr_in,vec_l)
         logger.info("encoding concluded")
         return arr_out
@@ -302,16 +363,32 @@ def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
     logger.info("encoding concluded")
     #return coding_out.tolist()
 
+
 # not longer needed
+'''
 def category(cat_in, topic_file):
     y =[]
     for cat in cat_in:
         
         y.append(p.topic_old(cat,topic_file))
     return y
+'''
+
 
 # Saving and loading
+
 def saveCat(path, data, prep, code, name):
+    ## takes all categories of traindata from one file
+    ## saves them in order in file, with info to orifginal file
+    
+    # path:     string, directory in which resulting file is located
+    # data:     list of ints, categories in order of texts
+    # prep:     int, type of preprocessing
+    #                used for generating filename
+    # code:     int, type of encoding
+    #                used for generating filename
+    # name:     string, name of original file
+
     file_name = path + "topic_"+str(prep)+"_"+str(code)+".csv"
     
     # including represented file
@@ -325,10 +402,23 @@ def saveCat(path, data, prep, code, name):
     return True
 
 def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batchsize, vec_l, word_l, filler):
-    # ord_enc_data: Data without encoding
-    # directory: directory to save output files.
-    # batchsize: number of texts in one file
-    # vec_l: size of dictionary(BOW) or text (other encodings)
+    ## encodes and saves data in batches to avoid to high RAM usage
+    ## save in batchsize prepares use of data generator
+
+    # ord_enc_data:     nested list of ints, ordinal encoded Data
+    # cats:             list of ints, categories of train data, in order of texts
+    # train:            boolean, if data is train or test set
+    # preproc:          int, type of preprocessing
+    # encoding:         int, type of encoding
+    # directory:        string, directory to save output files.
+    # batchsize:        int, number of texts in one file
+    # vec_l:            int, length of vector representing a text
+    #                        for ordinal encoding -> textlength
+    #                        for BOW -> length of used dictionary
+    # word_l:           int, length of vector representing single word
+    #                        for ordinal encoding/BOW -> 1
+    #                        for w2v -> n_o_classes, OneHot -> length of used dictionary
+    # filler:           int, type of filler method
 
     ## split list into multiple lists of batchsize
     split_lists = [ord_enc_data[i:i+batchsize] for i in range(0,len(ord_enc_data), batchsize)]
@@ -379,6 +469,13 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
     return file_IDs
 
 def loadCat(path, prep, code):
+    ## loads all categories of all train texts of one config
+    ## returns them in the same order as the texts
+
+    # path:     string, directory of categoryfiles
+    # prep:     int, type of preprocessing
+    # code:     int, type of encoding
+
     file_name = path + "topic_"+str(prep)+"_"+str(code)+".csv"
     out = []
 
@@ -392,7 +489,16 @@ def loadCat(path, prep, code):
     return out
 
 def saveData(path, data, train, prep, code, name):
-    # Used when data modified via tf-idf is includeed in multiple sittings 
+    ## saves ordinal encoded versions of texts of one file
+    ## needed if preprocessing needs all documents to be read beforehand
+
+    # path:     string, directory of outputfiles
+    # data:     nested list of ints, ordinal encoded texts
+    # train:    boolean, if data is train or test set
+    # prep:     int, type of preprocessing
+    # code:     int, type of encoding
+    # name:     string, name of original file
+
     # define savefile
     if train: 
         file_name = path + "train_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
@@ -406,9 +512,20 @@ def saveData(path, data, train, prep, code, name):
     return 1
 
 def saveShutdown(config_name, saved_states):
+    ## modifies configfile to save important informations relevant for next use
+
+    # config_name:  string, name of used configuration
+    # saved_states: list of variable data, information saved in config
+
     c.saveProf(config_name,saved_states[0],saved_states[1],saved_states[2],saved_states[3],saved_states[4],saved_states[5],saved_states[6])
 
+    return True
+
 def loadValues(path):
+    ## loads values saved in configfile
+
+    # path:     string, directory of configfile
+
     file_name = path + "start_config.txt"
     
     with open(file_name, 'r') as savefile:
@@ -416,6 +533,17 @@ def loadValues(path):
     return saved_values
 
 def loadData(path, train, prep, code, name ):
+    ## reads all files of one configuration in a diractory
+    ## returns nested lists of integers (ordinal encoded texts)
+    
+    # path:     string, directory in which the docs are saved in
+    # train:    boolean, if data is train or test set
+    # prep:     int, type of preprocessing
+    #                used for generating filename
+    # code:     int, type of encoding
+    #                used for generating filename
+    # name:     string, name of original file  
+
     # get all saved files with same preprocessing and encoding
     if train:
         file_name = path+"train_"+str(prep)+"_"+str(code)+"_"+str(name)+".csv"
@@ -437,6 +565,10 @@ def loadData(path, train, prep, code, name ):
     return output
 
 def loadConfig(config_name):
+    ## loads values saved in configfile
+
+    # path:     name of loading config
+
     global text_count,preproc,coding,word_max,dic_file,save_file_dir,out_file_dir
     x = c.getProf(config_name)
     if len(x) != 7:
@@ -620,7 +752,11 @@ if __name__ == "__main__":
                     # load textfile
                     texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
                     if preproc == 3:
-                        texts = texAnaTfIdf(texts,dic_file,bar,text_count)
+                        logger.info("TF IDF started")
+
+                        texts = p.tfIdf(texts,dic_file, bar, text_count)
+
+                        logger.info("TF IDF concluded")
                         #breakpoint()
                     texts_list.extend(texts)
                     '''
@@ -660,7 +796,11 @@ if __name__ == "__main__":
                     texts = loadData(save_file_dir, training, preproc,coding,g.replace("test_"+str(preproc)+"_"+str(coding)+"_",""))
                     
                     if preproc == 3:
-                        texts = texAnaTfIdf(texts,dic_file,bar,text_count)
+                        logger.info("TF IDF started")
+                        texts = p.tfIdf(texts,dic_file, bar, text_count)
+                        logger.info("TF IDF concluded")
+
+                        #texts = texAnaTfIdf(texts,dic_file,bar,text_count)
                         #breakpoint()
                     texts_list.extend(texts)
                     '''
