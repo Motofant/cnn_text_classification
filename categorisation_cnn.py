@@ -204,11 +204,16 @@ def newNetwork(in_shape):
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     #model.add(Dropout(0.3))
-
+    '''
+    model.add(Conv1D(128,3,activation="sigmoid",padding="same"))
+    model.add(MaxPooling1D(3,data_format="channels_first"))
+    model.add(keras.layers.BatchNormalization())
+    #model.add(Dropout(0.3))
+    '''
     model.add(keras.layers.Flatten())
     model.add(Dense(9,activation="softmax"))
     optimizer = keras.optimizers.Adam()
-    #optimizer = keras.optimizers.Adam(lr=0.0001)
+    optimizer = keras.optimizers.Adam(lr=0.0001)
 
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
     print("compiled succesfully")
@@ -284,7 +289,7 @@ if __name__ == "__main__":
     model = newNetwork(nn_input_size)
     #print(input_text.shape)
         ## if already used -> use weights
-    if load_nn:
+    if load_nn or True:
         model.load_weights(weight_save)
 
         ## show model
@@ -304,7 +309,7 @@ if __name__ == "__main__":
         
         trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, 50,1)
         print("train data gen done")
-        history = model.fit_generator(generator= trainings_train_gen, epochs =7)#, workers=4)        
+        history = model.fit_generator(generator= trainings_train_gen, epochs =3)#, workers=4)        
             ### TODO: show accc improvement? 
             ### update weights
         model.save_weights(weight_save)
