@@ -1,5 +1,5 @@
 __pycache__
-save/test*
-output/test*
-dictionary/test*
+save/**
+output/**
+dictionary/**
 **.csv#

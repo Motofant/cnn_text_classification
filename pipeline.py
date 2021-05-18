@@ -66,7 +66,7 @@ coding = 1
 final_set  = True
 loaded_config = "def"
 
-batch_size = 900
+batch_size = 50
 
 # files
 stop_word_dir = './stopword/'

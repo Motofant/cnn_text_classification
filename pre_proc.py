@@ -406,7 +406,7 @@ def oneHot(num_arr, l_size, o_size):
         w_vec[0] = 1
         word_to_vec = np.vstack((word_to_vec, w_vec))
         i += 1
-'''
+    '''
     #print(np.shape(word_to_vec))
 
     # returns array of arrays like: ([0,1,0,0],[1,0,0,0],...)
@@ -466,7 +466,7 @@ def headerTransform(header):
 ### function which change the Inputsize
 # Termfrequency-inversedocument frequency
 
-def tfIdf(input_lists, dict_path, bound, doc_count):
+def tfIdf_old(input_lists, dict_path, bound, doc_count):
     output_lists = []
     # read doc frequency
     doc_freq = pd.read_table(dict_path,usecols=[1], engine="python", encoding="utf8", header = None).stack().tolist()
@@ -495,6 +495,44 @@ def tfIdf(input_lists, dict_path, bound, doc_count):
         output_lists.append(transf_arr)
 
     return output_lists 
+
+def tfIdf(input_lists, dict_path, bound, doc_count):
+    #TEST_SHORTEND = []
+    #TEST_NEWLENGTH = []
+    #TEST_OLDLENGTH = []
+    output_lists = []
+    # read doc frequency
+    #doc_freq = dict_path#pd.read_table(dict_path,usecols=[1], engine="python", encoding="utf8", header = None).stack().tolist()
+    doc_freq = {x:y[0] for x,y in enumerate(pd.read_table(dict_path, usecols=[1], encoding= "utf8", header = None).to_numpy())}
+    
+    #reader_size = len(doc_freq)
+    for input_arr in input_lists:
+        j = len(input_arr)
+        counted_words = Counter(input_arr)
+        #breakpoint()
+        i = 0       
+        # output: array of arrays, arr1: idf, arr2: tf, arr3: tf idf -> will be returned
+        calc_arr = np.zeros([3,j]) 
+        transf_arr = []
+        # calculate TF-IDF
+
+        for number in input_arr:
+            
+            calc_arr[0][i] = math.log(doc_count/doc_freq.get(int(number)))#doc_freq[int(number)])
+            calc_arr[1][i] = float(counted_words.get(number))/j
+            calc_arr[2][i] = calc_arr[0][i] * calc_arr[1][i]
+            
+            if calc_arr[2][i] > bound:
+                transf_arr.append(input_arr[i])
+
+            i += 1
+        x = len(transf_arr)
+        #TEST_SHORTEND.append(j-x)
+        #TEST_NEWLENGTH.append(x)
+        #TEST_OLDLENGTH.append(j)
+        output_lists.append(transf_arr)
+
+    return output_lists, calc_arr[2]# , TEST_SHORTEND, TEST_NEWLENGTH,TEST_OLDLENGTH
 
 def wordTyp(total_text):
     output_text = []
