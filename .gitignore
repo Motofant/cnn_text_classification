@@ -5,5 +5,4 @@ dictionary/**
 **.csv#
 **.csv
 **.xlsx
-weigth/**
-**.log
+model/
