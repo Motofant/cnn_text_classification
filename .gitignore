@@ -3,3 +3,7 @@ save/**
 output/**
 dictionary/**
 **.csv#
+**.csv
+**.xlsx
+weigth/**
+**.log
