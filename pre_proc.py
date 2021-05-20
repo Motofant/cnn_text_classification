@@ -105,6 +105,45 @@ def fillTextRepeat(num_arr_total, text_l):
 def buildDictCat(texts, cats_of_texts, cat_len, diction,dict_file, train):
     iterator = 0
     out_texts = []
+    # read dictionary
+
+    text_trans= {x:i for i,x in enumerate(diction)}
+    if train:
+        for text in texts:
+            temp_text = []
+            for word in text:
+                if diction.get(word, None) == None:
+                    # create new element
+                    diction[word] = [0]*(cat_len +1 )
+                    text_trans[word] = len(text_trans)
+                
+                diction[word][cats_of_texts[iterator]+1] += 1
+                temp_text.append(text_trans.get(word))
+
+            out_texts.append(temp_text)
+            iterator += 1
+
+            for word in set(text):
+                diction.get(word)[0] += 1
+
+    else:
+        for text in texts:
+            temp_text = []
+            for word in text:
+                temp_text.append(text_trans.get(word,1))
+
+            out_texts.append(temp_text)
+
+            for word in set(temp_text):
+                diction[word][0] += 1  
+
+    saveDictCat(diction, dict_file)
+    
+    return {i:x[1:] for i,x in enumerate(diction.values())}, out_texts
+
+def buildDictCat_old(texts, cats_of_texts, cat_len, diction,dict_file, train):
+    iterator = 0
+    out_texts = []
     text_trans= {x:i for i,x in enumerate(diction)}
     if train:
         for text in texts:
@@ -185,6 +224,20 @@ def saveOutFile_test(tot_text, out_file):
     return True
 
 def loadDictCat(dic_file,cat_size):
+    with open(dic_file, mode='r',encoding= "utf8") as inp:
+        reader = csv.reader(inp,delimiter= "\t")
+        dict_from_csv = {}
+        for row in reader:
+            try:
+                dict_from_csv[row[0]] = list(map(int, row[1:cat_size + 2])) 
+            except:
+                logger.exception("element has been removed: wrong size ")
+                continue
+                #print("element removed")
+        #print(dict_from_csv)
+    return dict_from_csv
+
+def loadDictCat_old(dic_file,cat_size):
     with open(dic_file, mode='r',encoding= "utf8") as inp:
         reader = csv.reader(inp,delimiter= "\t")
         dict_from_csv = {rows[0]:list(map(int, rows[1:cat_size+1])) for rows in reader}   
@@ -532,7 +585,7 @@ def tfIdf(input_lists, dict_path, bound, doc_count):
         #TEST_OLDLENGTH.append(j)
         output_lists.append(transf_arr)
 
-    return output_lists, calc_arr[2]# , TEST_SHORTEND, TEST_NEWLENGTH,TEST_OLDLENGTH
+    return output_lists #, calc_arr[2] , TEST_SHORTEND, TEST_NEWLENGTH,TEST_OLDLENGTH
 
 def wordTyp(total_text):
     output_text = []
@@ -604,7 +657,7 @@ def smallerDict(dict_path, treshold):
             new_dict[counter] = (el,val)
             counter += 1
         else:
-            # if word doesn't meet treshold -> not in training
+            # if word doesn't meet treshold -> maped on "not in training"
             second_list.append((el,val,iterator,1))
         iterator += 1
     # create new dict_path
