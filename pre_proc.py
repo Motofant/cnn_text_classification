@@ -129,14 +129,22 @@ def buildDictCat(texts, cats_of_texts, cat_len, diction,dict_file, train):
     else:
         for text in texts:
             temp_text = []
+            TEST_VAR = []
             for word in text:
                 temp_text.append(text_trans.get(word,1))
 
             out_texts.append(temp_text)
 
-            for word in set(temp_text):
-                diction[word][0] += 1  
-
+            for word in set(text):
+                #breakpoint()
+                try:
+                    diction.get(word)[0] += 1 
+                except:
+                    # ignore words not in trainingsdate, to keep 
+                    TEST_VAR.append(word)
+                    #print(diction.get(word))
+                    #breakpoint()
+        #print(len(TEST_VAR))
     saveDictCat(diction, dict_file)
     
     return {i:x[1:] for i,x in enumerate(diction.values())}, out_texts
@@ -172,6 +180,7 @@ def buildDictCat_old(texts, cats_of_texts, cat_len, diction,dict_file, train):
     return {i:x for i,x in enumerate(diction.values())}, out_texts
 
 def encodeDictCat(texts, diction, cat_len):
+    #breakpoint()
     encoded_text = []
     for text in texts:
         single_text = []
@@ -180,9 +189,9 @@ def encodeDictCat(texts, diction, cat_len):
             dict_word = diction.get(word, None)
             if dict_word == None:
                 # add neutral element
-                dict_word = [0]*cat_len
+                dict_word = [0]*(cat_len+1)
 
-            single_text.append(dict_word)
+            single_text.append(dict_word[1:]) # ignore first val --> is 
         encoded_text.append(single_text)
     
     return encoded_text
@@ -192,7 +201,7 @@ def saveOutFile(texts,classes, dic_file):
         writer = csv.writer(dictFile, delimiter = "\t")
         iterator = 0
         for cat in classes:
-            
+            #writer.writerow([item for sublist in texts[iterator] for item in sublist])
             writer.writerow([cat]+[item for sublist in texts[iterator] for item in sublist])
             iterator += 1
 
@@ -219,6 +228,7 @@ def saveDictCat(diction, dic_file):
 def saveOutFile_test(tot_text, out_file):
     with open(out_file, mode="w",newline='',encoding="utf8") as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
+        #breakpoint()
         for text in tot_text:
             writer.writerow([item for sublist in text for item in sublist])
     return True
@@ -229,7 +239,7 @@ def loadDictCat(dic_file,cat_size):
         dict_from_csv = {}
         for row in reader:
             try:
-                dict_from_csv[row[0]] = list(map(int, row[1:cat_size + 2])) 
+                dict_from_csv[row[0]] = list(map(int, row[1:cat_size + 3])) 
             except:
                 logger.exception("element has been removed: wrong size ")
                 continue

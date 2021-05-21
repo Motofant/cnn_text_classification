@@ -28,7 +28,7 @@ logger.info("Starting Pipeline")
 training = False
 config_load = False
 just_encode = True
-delete_saves = False
+delete_saves = True
 # TODO: change classes from read topics
 classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
 # networkvar TODO: add to ini
@@ -36,12 +36,13 @@ text_vec_l = 1200
 word_vec_l = 1 
 load_nn = False
 class_number = 9
-dict_size_treshold = 5
+dict_size_treshold = 0
 # number of all texts
 text_count = 0
 # max words in text
 word_max = 0 # used for fill word 
-bar = 0.01
+bar = 0.002*0.95
+
 #word in dictionary -> only for testingpurposes
 #dict_size = 0
 # fix textsize 
@@ -66,7 +67,7 @@ coding = 1
 final_set  = True
 loaded_config = "def"
 
-batch_size = 50
+batch_size = 9000
 
 # files
 stop_word_dir = './stopword/'
@@ -265,7 +266,9 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
         # add ordinal encoding to build DictCat 
         if train:
             dictionary, ord_enc_text = p.buildDictCat(total_text,categories,cat_len,p.loadDictCat(dictio, cat_len),dic_file,train)
+            preproc_out = ord_enc_text
             #preproc_out = p.fillText(ord_enc_text,1200)
+            '''
             preproc_out = p.fillTextRepeat(ord_enc_text,1200)
             logger.info("encoding started")
             preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
@@ -273,20 +276,22 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
             del dictionary
             p.saveOutFile(preproc_out, categories, out_file_dir)
             logger.info("done")
-            exit()
+            #exit()'''
         else:
             dictionary, ord_enc_text = p.buildDictCat(total_text,[],cat_len, p.loadDictCat(dictio, cat_len),dictio, train)
-            
+            preproc_out = ord_enc_text
+            '''
             #preproc_out = p.fillText(ord_enc_text,1200)
             preproc_out = p.fillTextRepeat(ord_enc_text,1200)
+            
             logger.info("encoding started")
             
             preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
             logger.info("encoding ended")
             p.saveOutFile_test(preproc_out, out_file_dir)
             logger.info("done")
-            exit()
-        
+            #exit()
+            '''
         #print(len(preproc_out[0]))
         #saveDictCat(dictionary, dictio)
         
@@ -325,27 +330,33 @@ def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
         return arr_out
 
     else:
-        # fill text to same size, necessary fro input
+        # fill text to same size, necessary for input
         if fill_param == 2:
             #arr_out = p.fillTextRepeat(arr_in, text_l)
-            arr_out = p.fillTextRepeat(arr_in, vec_l)
-            logger.info("encoding concluded")
+            arr_in = p.fillTextRepeat(arr_in, vec_l)
+            
         else: 
             # no modification to encoding ->  ordinal encoding
             # One Hot only directly before input in NN to avoid big saves
-            arr_out = p.fillText(arr_in, vec_l)
+            arr_in = p.fillText(arr_in, vec_l)
             #arr_out = p.fillText(arr_in, text_l)
+            
+        if code == 3:
+
+            arr_out = p.encodeDictCat(arr_in,{x:y for x,y in enumerate(p.loadDictCat(dic_file,word_l).values())} ,word_l)
+            #breakpoint()
             logger.info("encoding concluded")
-        
+            return arr_out
         # encode in OneHot if asked
-        if code == 2:
+        elif code == 2:
             output = []
             
-            for arr in arr_out:
+            for arr in arr_in:
                 output.append(list(keras.utils.to_categorical(arr, word_l)))
             return output
 
-        return arr_out
+        logger.info("encoding concluded")
+        return arr_in
         
         '''
         # not Bag of word -> fix size manualy
@@ -427,7 +438,7 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
     ## Save names to ID List
 
     file_IDs = []
-    
+    #breakpoint()
     file_name = ""
     if train:
         file_name = "train_" + str(pre_proc) + "_" + str(encoding) + "_"
@@ -439,32 +450,41 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
 
             # push category to first value
             part_iter = 0
-            for single_text in encoded_list:
-                single_text.insert(0,split_cats[iter][part_iter])
-                part_iter += 1
+            if encoding != 3:
+                for single_text in encoded_list:
+                    single_text.insert(0,split_cats[iter][part_iter])
+                    part_iter += 1
+
 
             # Generate ID
             path = directory + file_name + str(iter) + ".csv"
             file_IDs.append(file_name + str(iter))
+            
+            #breakpoint()
+            if encoding == 3:
+                p.saveOutFile(encoded_list,split_cats[iter],path)
+            else:
+                pd.DataFrame(encoded_list).to_csv(path, sep = "\t", header= None, index=False)        
             iter += 1
-
-            pd.DataFrame(encoded_list).to_csv(path, sep = "\t", header= None, index=False)        
-
     
     else: 
         file_name = "test_" + str(pre_proc) + "_" + str(encoding) + "_"
-    
+        print("datasplit")
         iter = 0
         for p_o_list in split_lists:
             # encode part of total texts        
             encoded_list = encodingTyp(p_o_list, encoding, filler, vec_l, word_l)
-
+            print("encoded")
             # Generate ID
             path = directory + file_name + str(iter) + ".csv"
             file_IDs.append(file_name + str(iter))
             iter += 1
-
-            pd.DataFrame(encoded_list).to_csv(path, sep = "\t", header= None, index=False)        
+            print(encoding)
+            print(path)
+            if encoding == 3:
+                p.saveOutFile_test(encoded_list,path)
+            else:
+                pd.DataFrame(encoded_list).to_csv(path, sep = "\t", header= None, index=False)        
 
     return file_IDs
 
@@ -706,10 +726,11 @@ if __name__ == "__main__":
         # deleted cause right now save is needed
         #    if not final_set:
             saveCat(topic_file, cat,  preproc,coding, file_name)
-
+        print(len(text))
         # call function wordcut + preprocessing
         analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max, cat[1:], len(classes))
-
+        print("after ana")
+        print(len(analysed_text))
 
         # TODO: change that in final set no save needed 
         saveData(save_file_dir,list(analysed_text), training ,preproc, coding, file_name)
@@ -721,14 +742,19 @@ if __name__ == "__main__":
     # temp exclusion
     if final_set:
         # define dictionary length
-        dict_length = p.getDictionaryLength(dic_file)
-
+        if coding != 3:
+            dict_length = p.getDictionaryLength(dic_file)
+        else: 
+            # TODO: get dict_l 
+            dict_l = 0
         # def output list
         final_output = []
         # define params
 
         vec_l = dict_length if coding == 1 else word_max
         word_l = dict_length if coding == 2 else 1
+        if coding == 3:
+            word_l = 9
         number_of_texts = 0
         cats = []
         texts_list = []
@@ -779,9 +805,10 @@ if __name__ == "__main__":
                 logger.info("treshold != 0, dictionarymod started")
                 # decrease dictionary size by deleting
                 mod_dict, dic_file = p.smallerDict(dic_file, dict_size_treshold)
-                
+                logger.info("treshold != 0, modifying preprocessed text")
                 # modify pre_processed text
-                texts_list = p.smallerText(texts_list, mod_dict)
+                print(type(mod_dict))
+                texts_list = p.smallerText(texts_list, dict(mod_dict))
                 logger.info("treshold != 0, dictionarymod ended")
                 del mod_dict
         else:
@@ -794,8 +821,9 @@ if __name__ == "__main__":
                 if file_parameter in g:
                     # load textfile
                     texts = loadData(save_file_dir, training, preproc,coding,g.replace("test_"+str(preproc)+"_"+str(coding)+"_",""))
-                    
+                    #breakpoint()
                     if preproc == 3:
+                        print("tfidf is starting")
                         logger.info("TF IDF started")
                         texts = p.tfIdf(texts,dic_file, bar, text_count)
                         logger.info("TF IDF concluded")
@@ -813,13 +841,22 @@ if __name__ == "__main__":
         #saveData(out_file_dir,final_output, training, preproc, coding, "")
         transformed_cats = catTransform(cats)
         # 
-        dict_length = p.getDictionaryLength(dic_file)
-        print(dict_length)
+
+        if coding != 3:
+            dict_length = p.getDictionaryLength(dic_file)
+        else: 
+            # TODO: get dict_l 
+            dict_l = 0
+        # define params
+
         vec_l = dict_length if coding == 1 else word_max
         word_l = dict_length if coding == 2 else 1
+        if coding == 3:
+            word_l = 9
+        print("beginning save data split")
         file_ID_list = saveDataSplit(texts_list, transformed_cats,training, preproc, coding, out_file_dir, batch_size,vec_l,word_l,fix_size_param)
         logger.info("All preparations (Textanalysis and Preprocessing) concluded.")
-
+        print("save done")
         if just_encode:
             # TODO: save file_ID
             config_input[0] = text_count
@@ -831,6 +868,10 @@ if __name__ == "__main__":
             print("done")
             
             exit()
+
+
+
+
 
         # prepare data
         '''
