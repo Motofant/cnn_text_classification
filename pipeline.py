@@ -36,7 +36,7 @@ text_vec_l = 1200
 word_vec_l = 1 
 load_nn = False
 class_number = 9
-dict_size_treshold = 0
+dict_size_treshold = 5
 # number of all texts
 text_count = 0
 # max words in text
@@ -352,7 +352,9 @@ def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
             output = []
             
             for arr in arr_in:
-                output.append(list(keras.utils.to_categorical(arr, word_l)))
+                x = list(keras.utils.to_categorical(arr, word_l,dtype= "int"))
+                return x
+                output.append(x)
             return output
 
         logger.info("encoding concluded")
@@ -450,7 +452,7 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
 
             # push category to first value
             part_iter = 0
-            if encoding != 3:
+            if encoding < 2:
                 for single_text in encoded_list:
                     single_text.insert(0,split_cats[iter][part_iter])
                     part_iter += 1
@@ -458,13 +460,24 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
 
             # Generate ID
             path = directory + file_name + str(iter) + ".csv"
-            file_IDs.append(file_name + str(iter))
             
+            if encoding == 2:
+                # single text only 
+                # encoding saved in filename
+                path = directory + file_name + str(split_cats[0][0]) + "_" + str(iter) + ".csv"
+                for liste in p_o_list:
+                    #print(len(liste))
+                    pd.DataFrame(liste).to_csv(path, sep = "\t", header= None, index=False)
+
             #breakpoint()
             if encoding == 3:
                 p.saveOutFile(encoded_list,split_cats[iter],path)
             else:
                 pd.DataFrame(encoded_list).to_csv(path, sep = "\t", header= None, index=False)        
+            
+            # save filename
+            file_IDs.append(file_name + str(iter))
+
             iter += 1
     
     else: 
@@ -479,8 +492,8 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
             path = directory + file_name + str(iter) + ".csv"
             file_IDs.append(file_name + str(iter))
             iter += 1
-            print(encoding)
-            print(path)
+            #print(encoding)
+            #print(path)
             if encoding == 3:
                 p.saveOutFile_test(encoded_list,path)
             else:
@@ -604,7 +617,7 @@ def loadConfig(config_name):
         out_file_dir = x[6]
     except Exception:
         print("Error occured. Unexpected design of loaded config.")
-    
+
     return x
 
 
@@ -726,11 +739,11 @@ if __name__ == "__main__":
         # deleted cause right now save is needed
         #    if not final_set:
             saveCat(topic_file, cat,  preproc,coding, file_name)
-        print(len(text))
+        #print(len(text))
         # call function wordcut + preprocessing
         analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max, cat[1:], len(classes))
-        print("after ana")
-        print(len(analysed_text))
+        #print("after ana")
+        #print(len(analysed_text))
 
         # TODO: change that in final set no save needed 
         saveData(save_file_dir,list(analysed_text), training ,preproc, coding, file_name)
@@ -837,6 +850,7 @@ if __name__ == "__main__":
                     final_output += f_o
                     '''
         text_count = len(texts_list)
+        print(text_count)
         # save before next step
         #saveData(out_file_dir,final_output, training, preproc, coding, "")
         transformed_cats = catTransform(cats)
@@ -851,6 +865,8 @@ if __name__ == "__main__":
 
         vec_l = dict_length if coding == 1 else word_max
         word_l = dict_length if coding == 2 else 1
+        # DEBUG
+        print(word_max)
         if coding == 3:
             word_l = 9
         print("beginning save data split")

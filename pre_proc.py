@@ -595,6 +595,10 @@ def tfIdf(input_lists, dict_path, bound, doc_count):
         #TEST_OLDLENGTH.append(j)
         output_lists.append(transf_arr)
 
+    #print(TEST_SHORTEND)
+    #print(TEST_NEWLENGTH)
+    #print(TEST_OLDLENGTH)
+    #print(output_lists)
     return output_lists #, calc_arr[2] , TEST_SHORTEND, TEST_NEWLENGTH,TEST_OLDLENGTH
 
 def wordTyp(total_text):
