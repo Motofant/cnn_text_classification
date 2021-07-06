@@ -50,18 +50,25 @@ kat_size = 0
 
 # Load necessary stuff
 nlp = spacy.load('de')
-#nlp = spacy.load('de_core_news_sm')
- 
+
+# support function 
 def failInput():
     print(USE_INFO)
 
 def pathExists(path):
+    ## returns appropriate way to interact with csv file
+
+    # path: string, path to file
+
     if not os.path.isfile(path):
         return 'w+'
     else: 
         return 'r+'
 
 def getAllFiles(directory):
+    ## returns list of all files in directory usable as Input for the pipeline
+
+    # directory: string, folder containing inputfiles
     all_files = [(directory + f) for f in listdir(directory) if (f.endswith(".csv") or f.endswith(".txt"))]
     logger.debug("files found: "+str(len(all_files)))
     return all_files
@@ -70,9 +77,11 @@ def getDictionaryLength(path):
     return len(pd.read_table(path, header=None))
 
 def fillText(num_arr_total, text_l):
-    # shortens/extends ordinal encoded text
+    ## shortens/extends ordinal encoded text
+
     # num_arr: text in indexform, wird auf größe aufgepummt
     # text_l: größe die der Text am ende haben soll
+
     output = []
     for num_arr in num_arr_total:
 
@@ -89,6 +98,11 @@ def fillText(num_arr_total, text_l):
     return output
 
 def fillTextRepeat(num_arr_total, text_l):
+    ## shortens/extends ordinal encoded text
+
+    # num_arr: text in indexform, wird auf größe aufgepummt
+    # text_l: größe die der Text am ende haben soll
+
     output = []
     try:
         for num_arr in num_arr_total:      
@@ -103,6 +117,16 @@ def fillTextRepeat(num_arr_total, text_l):
 # used for categorizing as well
 
 def buildDictCat(texts, cats_of_texts, cat_len, diction,dict_file, train):
+    ## creates dictionary that saves occurences of words in category for W2V-Encoding
+    ## returns ordinal encoded text and dictionary 
+
+    # texts: list of strings, texts to undergo Preprocessing
+    # cat_of_texts: list of int, numerical encoded category, same order as texts 
+    # cat_len: int, number of categories
+    # diction: dict, representation of already existing dictionary  
+    # dict_file: string, location of dictionary savefile
+    # train: boolean, is data for training 
+
     iterator = 0
     out_texts = []
     # read dictionary
@@ -180,6 +204,12 @@ def buildDictCat_old(texts, cats_of_texts, cat_len, diction,dict_file, train):
     return {i:x for i,x in enumerate(diction.values())}, out_texts
 
 def encodeDictCat(texts, diction, cat_len):
+    ## encodes ordinal encoded data via the W2V-Encoding 
+    ## returns encoded texts
+
+    # texts: list of lists of ints, ordinal encoded texts
+    # diction: dictionary, data of dictionary 
+    # cat_len: number of categories 
     #breakpoint()
     encoded_text = []
     for text in texts:
@@ -197,6 +227,12 @@ def encodeDictCat(texts, diction, cat_len):
     return encoded_text
 
 def saveOutFile(texts,classes, dic_file):
+    ## saves W2V encoded data
+
+    # texts: list of lists of ints, encoded texts 
+    # classes: list of ints, encoded categories
+    # dic_file: string, path to outputfile
+    
     with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         iterator = 0
