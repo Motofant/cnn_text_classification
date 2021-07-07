@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import logging # TODO
 from texttable import Texttable
 import pre_proc as p 
+import pipeline as pl
 from data_gen import DataGenerator
 import os
 #import sklearn.model_selection as sms
@@ -26,8 +27,6 @@ tf.compat.v1.disable_eager_execution() # to prevent tf-bug with inputdata (anugr
 # Pipelinevariables
 ## already in pipeline-> not needed when porting
 
-
-
 ## new variables
 data_from_file = True
 load_nn = True
@@ -35,28 +34,26 @@ load_nn = True
 classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
 
 # necessary for current version
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttwo_t.csv"# ordinal encoded input
-#input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/defaulttest.csv"# ordinal encoded input
-input_file = "C:/Users/Erik/Desktop/test1.csv"
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/test_0_1_.csv"
-#input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/test/test_0_0_fill_2.csv"
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/train_0_0_0.csv"
-input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/cnn_input/test_0_0_0.csv"
 
 model_save = "./model/tw2v_10.h5"
 weight_save = "./weight/weight.h5"
-#weight_save = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/weight/weight.h5"
-#weight_save = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/weight/bow_auf_w2v_10.h5"
-#weight_save = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/weight/tw2v_10.h5"
+
+con_name = "nw2v" 
+## variables to include in config 
+network_id = 2
+batch_training = False
+no_epoch = 10
+batch_size = 50
 # input
 training = True
 load_nn = not training
 #input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/tb/test_3_1_0.csv"
 fp = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/tb/"
 if training:
-    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/tw2v/train_3_3_0.csv"
-    
-    input_files = [f for f in os.listdir(fp) if "train" in f]
+    if batch_training:
+        input_files = [f for f in os.listdir(fp) if "train" in f]
+    else:
+        input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/ww2v/oute.csv"        
     #print(input_files)
     #exit()
 else:
@@ -65,14 +62,8 @@ else:
     #exit()
 
 
-
-
-# inputtype
-one_hot = False
-
 # inputparams
-Text_length = 9*1200 #also bowlength
-
+Text_length = 1200 #also bowlength
 word_vec_length =  9# only not 1 in oneHot
 
 cat_size = 9
@@ -81,27 +72,52 @@ cat_size = 9
 input_categories = np.array([]) # only when trainingsdata
 input_text = np.array([])
 
-# Neural Network
-nn_input_size = (581, 1)
-nn_input_size = (1200, 9)
-#nn_input_size = (1200, 1)
-#nn_input_size = (8487, 1)
-#nn_input_size = (24261, 1)
-#nn_input_size = (38055, 1)
-
 #endregion
 
 #### Functions ####
 #region
-def setShape(vec_length, word_rep_length):
-    # vec_lec: length of vector representing the entire text (bow -> lex_size/ other -> text_size) 
-    # word_rep_length: length of vector representing a single word (if not one-Hot -> 1)
-    return(vec_length,word_rep_length)
+
+def netParams(encoding, cat_len, text_len, dict_loc):
+    ## defines network params 
+
+    # encoding: int, basis to determain used variables
+    # cat_len: int, n.o. categorsies
+    # text_len: int, n.o. words in text
+    # dict_loc: string, path to dictionary
+
+    if encoding == 0:
+        return text_len, 1
+    elif encoding == 1:
+        return p.getDictionaryLength(dict_loc), 1
+    elif encoding == 3:
+        return text_len, cat_len
+
+def usedNetwork(network_index, input_shape):
+    ## defines network used
+
+    # network_index: int, basis to determain network
+    # input_shape: shape of datainput to design inputlayer  
+
+    if network_index == 0:
+        return newNetwork_ord(input_shape)
+    elif network_index == 1:
+        return newNetwork_bow(input_shape)
+    elif network_index == 2:
+        return newNetwork_w2v(input_shape)
+    elif network_index == 3:
+        return newNetwork_bow_for_w2v(input_shape)
+    elif network_index == 4:
+        return newNetwork_w2v_for_bow(input_shape)
 
 def setCats(path):
     return pd.read_csv(path,header = None)[0].to_numpy()
 
 def showResult(prediction, classes):
+    ## presentation of classification of one text
+
+    # prediction: array of floats, network output
+    # classes: list of strings, rowname in table
+
     table = Texttable()
     table.set_cols_dtype(["t","f"])
     table.add_row(["Class", "Percantage\nin %"])
@@ -113,20 +129,31 @@ def showResult(prediction, classes):
     return table 
 
 def readFile(input_file, train, text_l, word_l,cat_size):
+    ## reads file and returns corretly transformed inputdata
+    ## not used for datagenerators
+
+    # input_file: string, path to inputfile
+    # train: boolean, non training data does not return categories per text 
+    # text_l: int, parameter to transform input correctly
+    # word_l: int, parameter to transform input correctly
+    # cat_size: int, parameter to transform input correctly
+
     if train:
         in_cat = pd.read_table(input_file,usecols=[0],header = None).to_numpy()
-        in_text = pd.read_table(input_file,usecols=list(range(text_l+1))[1:],header = None).to_numpy()
+        in_text = pd.read_table(input_file,usecols=list(range((text_l*word_l)+1))[1:],header = None).to_numpy()
         print(len(in_text[0]))
     else:
         in_cat = []
         in_text = pd.read_table(input_file,header = None).to_numpy()
-        
     
-    return  in_text.reshape((in_text.shape[0],1200,word_l)),keras.utils.to_categorical(in_cat,cat_size)
+    return  in_text.reshape((in_text.shape[0],text_l,word_l)),keras.utils.to_categorical(in_cat,cat_size)
 
 def visualHist(history):
+    ## shows visualization of accuracy and loss of network after training is completed 
     
-    # test visual
+    # history: network parameters progress over time 
+    
+    # summarize history for accuracy
     plt.plot(history.history['accuracy'])
 
     plt.title('model accuracy')
@@ -143,89 +170,20 @@ def visualHist(history):
     plt.legend(['dense_loss'], loc='upper right')
     plt.show()
 
-def newNetwork_old(in_shape):
-    ## create network (save)
-    # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
-    # https://keras.io/examples/nlp/pretrained_word_embeddings/
-
-
-    model = Sequential()
-    
-    model.add(Conv1D(64,3,input_shape=in_shape,activation="relu",padding="valid"))
-    model.add(MaxPooling1D(3,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    
-    
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(pool_size = 3))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-     
-    model.add(Conv1D(64,3, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-            
-
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(2,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-       
-    model.add(Conv1D(64,5, activation="relu",padding="valid"))
-    model.add(MaxPooling1D(3,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization()) # nötig damit nicht 0,1111
-    #model.add(Dropout(0.3))
-        
-    #model.add(GlobalMaxPooling1D())
-    model.add(keras.layers.Flatten())
-
-    model.add(Dense(9,activation="softmax"))
-
-    #optimizer = keras.optimizers.Adam(lr=0.001)
-    optimizer = keras.optimizers.Adam()
-
-    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
-    print("compiled succesfully")
-
-    return model
-
+## neural networks
 def newNetwork_bow_for_w2v(in_shape):
 
     model = Sequential()
 
     model.add(Conv1D(128,20,input_shape=in_shape,activation="relu",padding="same"))
-    #model.add(Conv1D(128,20,input_shape=in_shape,activation="relu",padding="same"))
-
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    '''
-    model.add(Conv1D(128,3,activation="sigmoid",padding="same"))
-    model.add(MaxPooling1D(3,data_format="channels_first"))
-    model.add(keras.layers.BatchNormalization())
-    #model.add(Dropout(0.3))
-    '''
     model.add(keras.layers.Flatten())
     model.add(Dense(9,activation="softmax"))
-    optimizer = keras.optimizers.Adam()
-    #optimizer = keras.optimizers.Adam(lr=0.0001)
-    optimizer = keras.optimizers.Adam(lr=0.00001)
-    
 
+    optimizer = keras.optimizers.Adam(lr=0.00001)
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
-    #model.compile(loss='categorical_crossentropy', optimizer="SGD", metrics=['accuracy'],experimental_run_tf_function=False)
+
     print("compiled succesfully")
     
     return model
@@ -237,15 +195,12 @@ def newNetwork_bow(in_shape):
     model.add(Conv1D(128,20,input_shape=in_shape,activation="sigmoid",padding="same"))
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-
     model.add(keras.layers.Flatten())
     model.add(Dense(9,activation="softmax"))
 
     optimizer = keras.optimizers.Adam(lr=0.00001)
-    
-
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
-    #model.compile(loss='categorical_crossentropy', optimizer="SGD", metrics=['accuracy'],experimental_run_tf_function=False)
+ 
     print("compiled succesfully")
     
     return model
@@ -261,18 +216,11 @@ def newNetwork_w2v_for_bow(in_shape):
     model.add(Conv1D(64,36,dilation_rate=9,input_shape=in_shape,activation="sigmoid",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-      
-    #model.add(GlobalMaxPooling1D())
-    
     model.add(keras.layers.Flatten())
-    #model.add(Dropout(0.5))
-
     model.add(Dense(9, activation="softmax"))
     
     optimizer = keras.optimizers.Adam(lr=0.00001)
-    
     model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
-    #model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
 
     print("compiled succesfully")
 
@@ -286,17 +234,13 @@ def newNetwork_w2v(in_shape):
     model = Sequential()
 
     model.add(Conv1D(64,36,dilation_rate=9,input_shape=in_shape,activation="relu",padding="valid"))
-    #model.add(Conv1D(64,36,strides=9,input_shape=in_shape,activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-    
     model.add(keras.layers.Flatten())
     model.add(Dense(9, activation="softmax"))
     
     optimizer = keras.optimizers.Adam(lr=0.0001)
-    #optimizer = keras.optimizers.Adam(lr=0.00001)
     model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
-    #model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
 
     print("compiled succesfully")
 
@@ -313,18 +257,11 @@ def newNetwork_ord(in_shape):
     model.add(Conv1D(64,4,input_shape=in_shape,activation="relu",padding="valid"))
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
-      
-    #model.add(GlobalMaxPooling1D())
-    
     model.add(keras.layers.Flatten())
-    #model.add(Dropout(0.5))
-
     model.add(Dense(9, activation="softmax"))
     
     optimizer = keras.optimizers.Adam(lr=0.0001)
-    
     model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
-    #model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
 
     print("compiled succesfully")
 
@@ -334,10 +271,31 @@ def newNetwork_ord(in_shape):
 #### "Pipeline" ####
 if __name__ == "__main__":
     # define vectors
+    
     input_text = []
     valid_class = []
+    # define variables
+        # get config
+    config = pl.loadConfig(con_name)
 
-    # check where data is comming from
+    classes = p.getCategories(config[7])
+    Text_length,word_vec_length = netParams(int(config[2]),len(classes),int(config[3]),config[4])
+    nn_input_size = (Text_length,word_vec_length)
+    network_id = int(config[8])
+    batch_training = config[9]
+    batch_size = int(config[10])
+    no_epoch = int(config[11])
+    
+    '''
+    print(str(batch_training))
+    print(str(batch_size))
+    print(str(no_epoch))
+    print(str(nn_input_size))
+    
+    breakpoint()
+    '''
+
+    # TODO: check whether single file or datagenerator 
     if data_from_file:
         input_text, valid_class = readFile(input_file, training, Text_length, word_vec_length,cat_size)
         
@@ -346,18 +304,12 @@ if __name__ == "__main__":
         ## use Vector
         pass 
         #print(len(input_text[0]))
-    if one_hot:
-        input_text = keras.utils.to_categorical(input_text,word_vec_l)
-        #input_text = keras.utils.to_categorical(input_text,278504,dtype="int8")
-    
-        
-        #input_text = p.oneHot(input_text,278504,0)
+
     # create CNN
-    model = newNetwork_w2v(nn_input_size)
-    #print(input_text.shape)
-    print(nn_input_size)
-        ## if already used -> use weights
-    if load_nn or True:
+    model = usedNetwork(network_id, nn_input_size)
+
+    ## if already used -> use weights
+    if load_nn:# or True:
         model.load_weights(weight_save)
 
         ## show model
@@ -372,18 +324,16 @@ if __name__ == "__main__":
         
         ## training -> save weights in the end -> non result needed
             ### TODO: change epoches/batchsize ? 
-        
-        history =model.fit(x = input_text,y =valid_class,shuffle = True,epochs=10, batch_size=50)
-        
-        
-        #trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, 50,1)
-        #print("train data gen done")
-        #history = model.fit_generator(generator= trainings_train_gen, epochs =10)#, workers=4)        
-            ### TODO: show accc improvement?
+        if batch_training:
+            trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, batch_size,1)
+            print("train data gen done")
+            history = model.fit_generator(generator= trainings_train_gen, epochs =no_epoch)      
+        else:
+            history = model.fit(x = input_text,y =valid_class,shuffle = True,epochs=no_epoch, batch_size=batch_size)
+
             ### update weights
         model.save_weights(weight_save)
-        #accuracy = model.evaluate(input_text,valid_class)
-        #print(accuracy)
+
         visualHist(history)
     else:
         ## test -> no save requiered (no weight updates) -> Show result

@@ -22,8 +22,11 @@ class DataGenerator(keras.utils.Sequence):
 
     def readFile(self, input_file, directory, encoding, text_l, word_l ,n_classes):
         path = directory + input_file #+ ".csv"
+        #if encoding == 2:
+            ## onehot encoded text one per file
+            
         in_cat = pd.read_table(path,usecols=[0],header = None).to_numpy()
-        in_text = pd.read_table(path,usecols=list(range(text_l+1))[1:],header = None).to_numpy()
+        in_text = pd.read_table(path,usecols=list(range(1,text_l+1)),header = None).to_numpy()
         #in_text = pd.read_table(path,usecols=list(range(text_l+1))[3:],header = None).to_numpy()
         
         # Bag of Words
@@ -32,7 +35,7 @@ class DataGenerator(keras.utils.Sequence):
         # One Hot
         elif encoding == 2:
             # TODO: think about reading fct
-            in_text = keras.utils.to_categorical(x,text_l)
+            in_text = pd.read_table(directory+files[0]).to_numpy()
         else:
             in_text = np.reshape(in_text, (len(in_cat),self.dim, self.n_channels))
         return in_text , keras.utils.to_categorical(in_cat, n_classes)

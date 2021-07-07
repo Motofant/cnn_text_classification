@@ -76,6 +76,9 @@ def getAllFiles(directory):
 def getDictionaryLength(path):
     return len(pd.read_table(path, header=None))
 
+def getCategories(path):
+    return pd.read_table(path,usecols=[0],header = None).stack().tolist()
+
 def fillText(num_arr_total, text_l):
     ## shortens/extends ordinal encoded text
 
@@ -244,6 +247,7 @@ def saveOutFile(texts,classes, dic_file):
     return True
 
 def loadOutFile(dic_file,len_class):
+    
     classes = []
     texts = []
     with open(dic_file, mode="r",newline='',encoding="utf8") as dictFile:
@@ -255,6 +259,11 @@ def loadOutFile(dic_file,len_class):
     return texts , classes
 
 def saveDictCat(diction, dic_file):
+    ## save W2V dictionary
+
+    # diction: dictionary, containing words, their documentfrequency and the termfrequency in each category 
+    # dic_file: string, path to dictionary file
+
     with open(dic_file, mode="w",newline='',encoding="utf8") as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         for key in diction.keys():
@@ -262,6 +271,11 @@ def saveDictCat(diction, dic_file):
     return True
 
 def saveOutFile_test(tot_text, out_file):
+    ## saves W2V encoded data without category
+
+    # texts: list of lists of ints, encoded texts 
+    # dic_file: string, path to outputfile
+
     with open(out_file, mode="w",newline='',encoding="utf8") as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
         #breakpoint()
@@ -270,6 +284,7 @@ def saveOutFile_test(tot_text, out_file):
     return True
 
 def loadDictCat(dic_file,cat_size):
+
     with open(dic_file, mode='r',encoding= "utf8") as inp:
         reader = csv.reader(inp,delimiter= "\t")
         dict_from_csv = {}
@@ -601,10 +616,8 @@ def tfIdf(input_lists, dict_path, bound, doc_count):
     #TEST_OLDLENGTH = []
     output_lists = []
     # read doc frequency
-    #doc_freq = dict_path#pd.read_table(dict_path,usecols=[1], engine="python", encoding="utf8", header = None).stack().tolist()
     doc_freq = {x:y[0] for x,y in enumerate(pd.read_table(dict_path, usecols=[1], encoding= "utf8", header = None).to_numpy())}
-    
-    #reader_size = len(doc_freq)
+
     for input_arr in input_lists:
         j = len(input_arr)
         counted_words = Counter(input_arr)
@@ -617,7 +630,7 @@ def tfIdf(input_lists, dict_path, bound, doc_count):
 
         for number in input_arr:
             
-            calc_arr[0][i] = math.log(doc_count/doc_freq.get(int(number)))#doc_freq[int(number)])
+            calc_arr[0][i] = math.log(doc_count/doc_freq.get(int(number)))
             calc_arr[1][i] = float(counted_words.get(number))/j
             calc_arr[2][i] = calc_arr[0][i] * calc_arr[1][i]
             
@@ -722,7 +735,7 @@ def smallerDict(dict_path, treshold):
     return return_list, output_file
 
 def smallerText(texts, new_dict):
-
+    # modifies texts to new dictionary 
     out_texts = []
     for text in texts:
         temp_text_list = []

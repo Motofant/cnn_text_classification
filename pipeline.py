@@ -36,7 +36,7 @@ text_vec_l = 1200
 word_vec_l = 1 
 load_nn = False
 class_number = 9
-dict_size_treshold = 5
+dict_size_treshold = 0
 # number of all texts
 text_count = 0
 # max words in text
@@ -67,14 +67,16 @@ coding = 1
 final_set  = True
 loaded_config = "def"
 
+network_typ = 0
+batch_encoding = False 
 batch_size = 9000
+epochs = 10
 
 # files
 stop_word_dir = './stopword/'
 dic_file = './dictionary/def_dictionary.csv'
 topic_dic_file = './dictionary/kat.csv'
-topic_file = './save/'
-input_file = 'C:/Users/Erik/Desktop/check.csv'
+#input_file = 'C:/Users/Erik/Desktop/check.csv'
 dict_file_dir = './dictionary/'
 save_file_dir = './save/'
 out_file_dir = './output/'
@@ -105,7 +107,7 @@ def newProfil(config, name, data):
         # set data to False, if settings not closer defiend
         if data:
             # TODO: try
-            c.newProfMauell(name, data[0],data[1],data[2],data[3],data[4],data[5],data[6])
+            c.newProfMauell(name, data)
         else:
             c.newProf(name)
     return "Profil created succesfully."
@@ -175,11 +177,6 @@ def resetVar(training):
         word_max = 0
     text_count = 0
     return True
-
-def calcUnknownWords():
-    # TODO: 
-    pass
-
 
 # actually relevant for Pipeline
 
@@ -262,8 +259,7 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
 
     # TODO check output 
     if coding == 3:
-        # TODO: do fill -> encode to ordinal -> change encoding later
-        # add ordinal encoding to build DictCat 
+
         if train:
             dictionary, ord_enc_text = p.buildDictCat(total_text,categories,cat_len,p.loadDictCat(dictio, cat_len),dic_file,train)
             preproc_out = ord_enc_text
@@ -375,18 +371,6 @@ def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
         
     logger.info("encoding concluded")
     #return coding_out.tolist()
-
-
-# not longer needed
-'''
-def category(cat_in, topic_file):
-    y =[]
-    for cat in cat_in:
-        
-        y.append(p.topic_old(cat,topic_file))
-    return y
-'''
-
 
 # Saving and loading
 
@@ -550,7 +534,7 @@ def saveShutdown(config_name, saved_states):
     # config_name:  string, name of used configuration
     # saved_states: list of variable data, information saved in config
 
-    c.saveProf(config_name,saved_states[0],saved_states[1],saved_states[2],saved_states[3],saved_states[4],saved_states[5],saved_states[6])
+    c.saveProf(config_name,saved_states)
 
     return True
 
@@ -602,9 +586,9 @@ def loadConfig(config_name):
 
     # path:     name of loading config
 
-    global text_count,preproc,coding,word_max,dic_file,save_file_dir,out_file_dir
+    global text_count,preproc,coding,word_max,dic_file,save_file_dir,out_file_dir,topic_dic_file,network_id,batch_encoding,batch_size,epochs,stop_word_dir
     x = c.getProf(config_name)
-    if len(x) != 7:
+    if len(x) != 13:
         print("config doesn't match variables, default config is used")
         x = c.getProf("def")
     try:
@@ -615,6 +599,13 @@ def loadConfig(config_name):
         dic_file = x[4]
         save_file_dir = x[5]
         out_file_dir = x[6]
+        topic_dic_file = x[7]
+        network_id = int(x[8])
+        batch_encoding = True if x[9] =="True" else False
+        batch_size = int(x[10])
+        epochs = int(x[11])
+        stop_word_dir = x[12]
+
     except Exception:
         print("Error occured. Unexpected design of loaded config.")
 
@@ -738,7 +729,7 @@ if __name__ == "__main__":
 
         # deleted cause right now save is needed
         #    if not final_set:
-            saveCat(topic_file, cat,  preproc,coding, file_name)
+            saveCat(save_file_dir, cat,  preproc,coding, file_name)
         #print(len(text))
         # call function wordcut + preprocessing
         analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max, cat[1:], len(classes))
@@ -781,7 +772,7 @@ if __name__ == "__main__":
             #check how many files will be transformed
             # TODO: maybe count in config
             # load categoryfile
-            cats = loadCat(topic_file,preproc,coding)
+            cats = loadCat(save_file_dir,preproc,coding)
 
 
             for f in listdir(save_file_dir):
@@ -876,6 +867,7 @@ if __name__ == "__main__":
         if just_encode:
             # TODO: save file_ID
             config_input[0] = text_count
+            config_input[3] = word_max
             config_input[4] = dic_file
             resetVar(training)
             saveShutdown(loaded_config,config_input)
