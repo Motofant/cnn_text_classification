@@ -1,7 +1,4 @@
-import sys 
-import string
 import numpy as np
-import time
 import spacy
 from spacy.lang.de.stop_words import STOP_WORDS
 import csv
@@ -26,19 +23,6 @@ from collections import Counter
 # Logger
 logger = logging.getLogger(__name__)
 
-# Errormessage
-USE_INFO = """USE: pre_proc.py [define Input] [option] [option] ...
--i 'direktory\\filename.txt'    -> Input needs to be defined
--o 'direktory\\filename.txt'    -> Define Output
--train                          -> input is training data (has def. category)
--sw 'threshold'                 -> use stopwords, threshold optional(10 default) 
--t                              -> show time needed"""
-
-# default termfrequency treshold + boundaries
-#DEF_IDF = 10
-#LOW_BOUND = 0
-#HIGH_BOUND = 100
-#TEXT_SIZE = 500 #number of words, text can't be longer than that
 TEXT_CT = 20 # number of texts in input
 cleanup = "'#$%&*+=/<>{|@}[]^_-~"  #string.punctuation.replace('!"#$%&'()*+, -./:;<=>?','-')+'“'
 
@@ -52,9 +36,6 @@ kat_size = 0
 nlp = spacy.load('de')
 
 # support function 
-def failInput():
-    print(USE_INFO)
-
 def pathExists(path):
     ## returns appropriate way to interact with csv file
 
@@ -69,6 +50,7 @@ def getAllFiles(directory):
     ## returns list of all files in directory usable as Input for the pipeline
 
     # directory: string, folder containing inputfiles
+
     all_files = [(directory + f) for f in listdir(directory) if (f.endswith(".csv") or f.endswith(".txt"))]
     logger.debug("files found: "+str(len(all_files)))
     return all_files
@@ -176,36 +158,6 @@ def buildDictCat(texts, cats_of_texts, cat_len, diction,dict_file, train):
     
     return {i:x[1:] for i,x in enumerate(diction.values())}, out_texts
 
-def buildDictCat_old(texts, cats_of_texts, cat_len, diction,dict_file, train):
-    iterator = 0
-    out_texts = []
-    text_trans= {x:i for i,x in enumerate(diction)}
-    if train:
-        for text in texts:
-            temp_text = []
-            for word in text:
-                if diction.get(word, None) == None:
-                    # create new element
-                    diction[word] = [0]*cat_len
-                    text_trans[word] = len(text_trans)
-                    
-                # update 
-                diction[word][cats_of_texts[iterator]] += 1
-                temp_text.append(text_trans.get(word))
-
-            out_texts.append(temp_text)
-            iterator += 1
-        saveDictCat(diction, dict_file)
-    else:
-        for text in texts:
-            temp_text = []
-            for word in text:
-                temp_text.append(text_trans.get(word,1))
-
-            out_texts.append(temp_text)
-
-    return {i:x for i,x in enumerate(diction.values())}, out_texts
-
 def encodeDictCat(texts, diction, cat_len):
     ## encodes ordinal encoded data via the W2V-Encoding 
     ## returns encoded texts
@@ -246,18 +198,6 @@ def saveOutFile(texts,classes, dic_file):
 
     return True
 
-def loadOutFile(dic_file,len_class):
-    
-    classes = []
-    texts = []
-    with open(dic_file, mode="r",newline='',encoding="utf8") as dictFile:
-        reader = csv.reader(dictFile,delimiter= "\t")
-        for row in reader:
-            classes.append(row[0])
-            #texts.append([int(el) for el in row[1:]])
-            texts.append([list(map(int,row[idx : idx+len_class])) for idx in range(1,len(row),len_class)])
-    return texts , classes
-
 def saveDictCat(diction, dic_file):
     ## save W2V dictionary
 
@@ -284,6 +224,10 @@ def saveOutFile_test(tot_text, out_file):
     return True
 
 def loadDictCat(dic_file,cat_size):
+    ## return Dictionary containing Termfrequency in each topic
+
+    # dic_file: string, location of dictionaryfile
+    # cat_size: int, number of categories, used to get length of dictionary entry
 
     with open(dic_file, mode='r',encoding= "utf8") as inp:
         reader = csv.reader(inp,delimiter= "\t")
@@ -294,62 +238,20 @@ def loadDictCat(dic_file,cat_size):
             except:
                 logger.exception("element has been removed: wrong size ")
                 continue
-                #print("element removed")
-        #print(dict_from_csv)
+
     return dict_from_csv
-
-def loadDictCat_old(dic_file,cat_size):
-    with open(dic_file, mode='r',encoding= "utf8") as inp:
-        reader = csv.reader(inp,delimiter= "\t")
-        dict_from_csv = {rows[0]:list(map(int, rows[1:cat_size+1])) for rows in reader}   
-    return dict_from_csv
-
-def encodeDictCat_test(texts, diction, cat_len):
-    encoded_text = []
-    for text in texts:
-        single_text = []
-        for word in text:
-            dict_word = diction.get(word, None)
-            if dict_word == None:
-                # add neutral element
-                dict_word = [0]*cat_len
-
-            single_text.append(dict_word)
-        encoded_text.append(single_text)
-    
-    return encoded_text
-
-
-def encodeDictCat_old(texts, diction, cat_len):
-    encoded_text = []
-    for text in texts:
-        single_text = []
-        for word in text:
-            dict_word = diction.get(word, None)
-            if dict_word == None:
-                # add neutral element
-                dict_word = [0]*cat_len
-
-            single_text.append(dict_word)
-        encoded_text.append(single_text)
-    
-    return encoded_text
-
-def buildDictCat_old(texts, cats_of_texts, cat_len, diction):
-    iterator = 0
-    for text in texts:
-        for word in text:
-            if diction.get(word, None) == None:
-                # create new element
-                diction[word] = [0]*cat_len
-            
-            # update 
-            diction[word][cats_of_texts[iterator]] += 1
-        iterator += 1
-    return diction
 
 def dictionary(path, tot_text, training, text_length):
-    # returns fixedsized numberarray
+    ## returns ordinal encoded texts in list of lists of ints
+    ## adds words to dictionary word is part of a trainingsset
+    ## calculates document frequency
+
+    # path: string, location of dictionary file
+    # tot_text: list of lists of strings, inputdata in word lists
+    # training: boolean, new words in trainingsdataset will be added to dictionary
+    #                    new words in testingdata wont be added to dictionary to guarantee fixed dictionarysize
+    # text_length: int, maximum number of words in text
+
     word_dict=[[],[]]
     num_arr=[]
     
@@ -404,21 +306,16 @@ def dictionary(path, tot_text, training, text_length):
 
     ## override dictionary
     pd.DataFrame([list(dictionary.keys()),word_dict[1]]).T.to_csv(path, sep= "\t", header = None, index = False)
-    #print(pd.DataFrame(word_dict))
-    
-    '''
-    # bring Text to standart size
-    num_arr_fixsize = fillText(num_arr,text_length)
-
-    return num_arr_fixsize
-    '''
 
     # fixed size throws problems with tfidf
     return num_arr
 
 def cutWord(total_text,mode):
-    # text: newsarticle 
-    # modus: preprocessing-typ: 
+    ## returns texts in list of lists of strings
+    ## texts get cut in wordlists, words get selected and the modified list returned 
+
+    # total_text: list of string, newspaperarticles 
+    # mode: int, word selection process: 
         # 0: default
         # 1: wordtyp
         # 2: grammer
@@ -470,6 +367,11 @@ def cutWord(total_text,mode):
     return total_output, total_text_len
 
 def bagOfWords(text_lists,l_size):
+    ## encodes ordinal encoded texts into normalized bag of words
+
+    # text_lists: list of lists of int, input data
+    # l_size: int, length of dictionary 
+
     # create Output list
     bow_lists = []
     for text in text_lists:
@@ -480,18 +382,6 @@ def bagOfWords(text_lists,l_size):
         bow_lists.append(list(x))
     
     return bow_lists
-
-def bagOfWords_old(text_lists,l_size):
-    # create Output list
-    bow_lists = []
-    for text in text_lists:
-        counted_word = Counter({x:0 for x in range(l_size)})
-        counted_word.update(Counter(text))
-
-        bow_lists.append(list(dict(sorted(counted_word.items())).values()))
-    
-    return bow_lists
-
 
 # transforms ordinal encoded text to one-hot-encoded text, used as input for NN 
 def oneHot(num_arr, l_size, o_size):
@@ -528,8 +418,11 @@ def oneHot(num_arr, l_size, o_size):
     return word_to_vec
 
 def topic(categories, path):
-    # category: string, transformed into number
-    # path: path, where dictionary with categories lies
+    ## transforms categories in numbers
+    ## returns list of int
+
+    # category: list of strings, transformed into number
+    # path: string, where dictionary with categories lies
 
     # check if categories are in list form. 
     # Error could accure when there is one Text -> give string 
@@ -568,49 +461,19 @@ def topic(categories, path):
     #return word_dict.index(category)
     return out_arr
 
-# only put in header
-def headerTransform(header):
-    # create Topic-vector
-    # header design: headerlength, size of topicvector, topicID, size of dictionary
-    i = np.zeros(header[1])
-    i[header[2]] = 1
-    return i
-
-
 ### function which change the Inputsize
 # Termfrequency-inversedocument frequency
 
-def tfIdf_old(input_lists, dict_path, bound, doc_count):
-    output_lists = []
-    # read doc frequency
-    doc_freq = pd.read_table(dict_path,usecols=[1], engine="python", encoding="utf8", header = None).stack().tolist()
-    #reader_size = len(doc_freq)
-    for input_arr in input_lists:
-        j = len(input_arr)
-        counted_words = Counter(input_arr)
-        
-        i = 0       
-        # output: array of arrays, arr1: idf, arr2: tf, arr3: tf idf -> will be returned
-        calc_arr = np.zeros([3,j]) 
-        transf_arr = []
-        # calculate TF-IDF
-
-        for number in input_arr:
-            
-            calc_arr[0][i] = math.log(doc_count/doc_freq[int(number)])
-            calc_arr[1][i] = counted_words.get(int(number))/j
-            calc_arr[2][i] = calc_arr[0][i] * calc_arr[1][i]
-            
-            if calc_arr[2][i] > bound:
-                transf_arr.append(input_arr[i])
-
-            i += 1
-
-        output_lists.append(transf_arr)
-
-    return output_lists 
-
 def tfIdf(input_lists, dict_path, bound, doc_count):
+    ## calculates TF-IDF
+    ## returns filtered ordinal encoded texts
+
+    # input_lists: list of lists of int, ordinal encoded texts 
+    # dict_path: string, location of dictionaryfile
+    # bound: float, treshold of TF-IDF
+    #               words with TF-IDF below bound wont be used
+    # doc_count: int, document frequency
+
     #TEST_SHORTEND = []
     #TEST_NEWLENGTH = []
     #TEST_OLDLENGTH = []
@@ -651,6 +514,11 @@ def tfIdf(input_lists, dict_path, bound, doc_count):
     return output_lists #, calc_arr[2] , TEST_SHORTEND, TEST_NEWLENGTH,TEST_OLDLENGTH
 
 def wordTyp(total_text):
+    ## returns list of lists of strings representing lemmas of each word
+    ## eliminates words that are not nouns or verbs
+    
+    # total_text: list of lists of tokens, input data
+ 
     output_text = []
     output_len = []
 
@@ -668,6 +536,11 @@ def wordTyp(total_text):
     return output_text, output_len
 
 def grammar(total_text):
+    ## returns list of lists of strings representing lemmas of each word
+    ## eliminates words that are not subject or predicate
+    
+    # total_text: list of lists of tokens, input data
+
     output_text = []
     output_len = []
 
@@ -685,6 +558,10 @@ def grammar(total_text):
     return output_text, output_len
 
 def loadStopword(path):
+    ## load stopwordlists 
+
+    # path: string, folder containing stopword file
+
     # TODO: check if valid directory 
     logger.info("start adding stopworts")
     files = getAllFiles(path)
@@ -705,6 +582,14 @@ def loadStopword(path):
     return True
 
 def smallerDict(dict_path, treshold):
+    ## eliminates all words from dictionary below threshold
+    ## saves new dictionary in extra file
+    ## returns path to new dictionary file
+    ## links old wordindex to new index and returns it 
+
+    # dict_path: string, location of dictionary file
+    # treshold: int, number of texts word has to occure in to stay in dictionary 
+
     out_list = []
     new_dict = {}
 
@@ -735,7 +620,11 @@ def smallerDict(dict_path, treshold):
     return return_list, output_file
 
 def smallerText(texts, new_dict):
-    # modifies texts to new dictionary 
+    ## modifies texts to new dictionary 
+
+    # texts: list of lists of ints, ordinal encoded texts
+    # new_dict: dictionary, contains links between old and new index
+     
     out_texts = []
     for text in texts:
         temp_text_list = []

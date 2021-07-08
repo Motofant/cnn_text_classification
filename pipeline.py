@@ -1,3 +1,4 @@
+from time import process_time_ns
 import pre_proc as p
 import configtry as c
 import categorisation_cnn as cc
@@ -261,36 +262,9 @@ def textAna(text_in, prep_mode, fix_size,dictio, train, text_len, categories,cat
     if coding == 3:
 
         if train:
-            dictionary, ord_enc_text = p.buildDictCat(total_text,categories,cat_len,p.loadDictCat(dictio, cat_len),dic_file,train)
-            preproc_out = ord_enc_text
-            #preproc_out = p.fillText(ord_enc_text,1200)
-            '''
-            preproc_out = p.fillTextRepeat(ord_enc_text,1200)
-            logger.info("encoding started")
-            preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
-            logger.info("encoding ended")
-            del dictionary
-            p.saveOutFile(preproc_out, categories, out_file_dir)
-            logger.info("done")
-            #exit()'''
+            dictionary, preproc_out = p.buildDictCat(total_text,categories,cat_len,p.loadDictCat(dictio, cat_len),dic_file,train)
         else:
-            dictionary, ord_enc_text = p.buildDictCat(total_text,[],cat_len, p.loadDictCat(dictio, cat_len),dictio, train)
-            preproc_out = ord_enc_text
-            '''
-            #preproc_out = p.fillText(ord_enc_text,1200)
-            preproc_out = p.fillTextRepeat(ord_enc_text,1200)
-            
-            logger.info("encoding started")
-            
-            preproc_out = p.encodeDictCat(preproc_out,dictionary,cat_len)
-            logger.info("encoding ended")
-            p.saveOutFile_test(preproc_out, out_file_dir)
-            logger.info("done")
-            #exit()
-            '''
-        #print(len(preproc_out[0]))
-        #saveDictCat(dictionary, dictio)
-        
+            dictionary, preproc_out = p.buildDictCat(total_text,[],cat_len, p.loadDictCat(dictio, cat_len),dictio, train)
 
     else:
         preproc_out = p.dictionary(dictio,total_text, train, text_len)
@@ -340,7 +314,6 @@ def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
         if code == 3:
 
             arr_out = p.encodeDictCat(arr_in,{x:y for x,y in enumerate(p.loadDictCat(dic_file,word_l).values())} ,word_l)
-            #breakpoint()
             logger.info("encoding concluded")
             return arr_out
         # encode in OneHot if asked
@@ -355,22 +328,6 @@ def encodingTyp(arr_in, code, fill_param, vec_l, word_l):
 
         logger.info("encoding concluded")
         return arr_in
-        
-        '''
-        # not Bag of word -> fix size manualy
-        y = []
-        for text in arr_in:
-            y.append(p.fillText(text,text_l))
-        if code == 2:
-            #breakpoint()
-            coding_out = np.array([p.oneHot(y[0],dict_len,text_l)])
-            for text in y[1:]:
-                coding_out = np.vstack((coding_out, [p.oneHot(text,dict_len,text_l)]))# wordmax hier nicht notwendig, da txt auf länge gebracht 
-        else:
-        '''
-        
-    logger.info("encoding concluded")
-    #return coding_out.tolist()
 
 # Saving and loading
 
@@ -625,7 +582,7 @@ if __name__ == "__main__":
     # longest input: pipeline.py config -t -n inputfile (Input not final, trainingset)
     length =len(sys.argv)
     # check validity of input
-    if length < 2 or length > 7:
+    if length < 2:# or length > 7:
         print("invalid length")
         exit()
 
@@ -634,6 +591,8 @@ if __name__ == "__main__":
 
     iterator = 0 
     for arg in sys.argv:
+        #print(arg)
+        #print(iterator)
         # extra functions
         if skip_iteration:
             skip_iteration = False
@@ -650,29 +609,43 @@ if __name__ == "__main__":
         # 
         if arg == "-fill":
             try:
-                print(sys.argv[iterator+2])
-                fix_size_param = int(sys.argv[iterator+2])
-
+                fix_size_param = int(sys.argv[iterator+1])
+                skip_iteration = True
+                iterator += 2
             except ValueError:
                 logger.debug("-fill got bad value, continue with 2")
                 fix_size_param = 2
+                skip_iteration = True
+                iterator += 2
             continue
 
         # Inputfile is not the final input
         if arg == "-n":
             final_set = False
+            iterator += 1
             continue
         # Input is a trainingset
         if arg == "-f":
             training = True
+            iterator += 1
             continue
+        # bound for tf idf
+        if arg == "-t":
+            #print(sys.argv[iterator])
+            bar = float(sys.argv[iterator+1])
+            skip_iteration = True
+            iterator += 2
+            continue
+        
         # Last Element is inputfile
         if arg== sys.argv[-1]:
             input_directory = arg
-            continue
+            iterator += 1
+            break
         else:
             loaded_config = arg
-        iterator += 1
+            iterator += 1
+            continue
 
     #endregion
     ## Config stuff 
@@ -811,7 +784,6 @@ if __name__ == "__main__":
                 mod_dict, dic_file = p.smallerDict(dic_file, dict_size_treshold)
                 logger.info("treshold != 0, modifying preprocessed text")
                 # modify pre_processed text
-                print(type(mod_dict))
                 texts_list = p.smallerText(texts_list, dict(mod_dict))
                 logger.info("treshold != 0, dictionarymod ended")
                 del mod_dict

@@ -20,10 +20,19 @@ testet on Python 3.7.3
 	
 ## Usage:
 ### CommandlineArgs
-- use Pipeline
-	- python ./pipeline.py [-f] [-n] config_name input_directory
-		- -f -> 
-		- -n -> not final set -> add more 
+- preprocessing pipeline
+	- python ./pipeline.py [optional1 optional2 ...] config_name input_directory
+		- [-f]: 	trainingsset  -> if 
+		- ~~[-n]: 	not final set -> add more directories~~
+		- [-fill (int)]:	fillfunction
+			- 0 --> longest text with new fillword
+			- 1 --> shortest text
+			- 2 --> longest text with text repeat
+		- [-t (float)]:		tf-idf treshold
+		- config_name: 		name of the config to be loaded
+		- input_directory:	directory containing all files to be encoded
+- cnn 
+	- 
 - create dictionaries
 
 ### Variables
@@ -38,25 +47,25 @@ Values can be accessed in configuration
 
 #### Preprocessing 
 - word selection process [pre_proc]
-	0. no wordelimination
-	1. wordtyp
-	2. part of sentence
-	3. tf-idf
+	- 0 -->  no wordelimination
+	- 1 --> wordtyp
+	- 2 --> part of sentence
+	- 3 --> tf-idf
 - Encoding [coding]
-	0. Ordinal
-	1. BOW
-	2. ~~One Hot~~ (only partially implemented)
-	3. W2V
+	- 0 --> Ordinal
+	- 1 --> BOW
+	- 2 --> ~~One Hot~~ (only partially implemented)
+	- 3 --> W2V
 - batchencoding [batch_enc]
 - batchsize [batch_size]
 
 #### Network
 - Typ [net_typ]
-	0. Ordinal
-	1. BOW
-	2. W2V
-	3. BOW-network modified to be used with W2V-encoded data
-	4. W2V-network modified to be used with BOW-encoded data
+	- 0 --> Ordinal
+	- 1 --> BOW
+	- 2 --> W2V
+	- 3 --> BOW-network modified to be used with W2V-encoded data
+	- 4 --> W2V-network modified to be used with BOW-encoded data
 - epochs [epochs]
 
 #### other saved Values
@@ -64,4 +73,5 @@ Values can be accessed in configuration
 - maximum number of word in text [word_max]
 
 ### Inputdata
+- folder containing all textfiles defined in Input
 - .csv/txt files 

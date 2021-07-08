@@ -38,13 +38,14 @@ classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wir
 model_save = "./model/tw2v_10.h5"
 weight_save = "./weight/weight.h5"
 
-con_name = "nw2v" 
-## variables to include in config 
+con_name = "def" 
+## default values for configvariables
 network_id = 2
 batch_training = False
 no_epoch = 10
 batch_size = 50
-# input
+
+## information for 
 training = True
 load_nn = not training
 #input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/tb/test_3_1_0.csv"
