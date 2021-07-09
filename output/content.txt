@@ -1,0 +1,2 @@
+This folder contains the output folders of all configurations.
+Those Folders have to be created manually.

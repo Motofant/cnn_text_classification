@@ -1,0 +1,2 @@
+This folder contains temporary saves.
+Files get deleted, when the encoding is executed.
