@@ -22,13 +22,13 @@ testet on Python 3.7.3
 ### CommandlineArgs
 - preprocessing pipeline
 	- python ./pipeline.py [optional1 optional2 ...] config_name input_directory
-		- [-f]: 	trainingsset  -> if 
+		- [-f]: 	Input is trainingdata
 		- ~~[-n]: 	not final set -> add more directories~~
 		- [-fill (int)]:	fillfunction
 			- 0 --> longest text with new fillword
 			- 1 --> shortest text
-			- 2 --> longest text with text repeat
-		- [-t (float)]:		tf-idf treshold
+			- 2 --> longest text with text repeat (default)
+		- [-t (float)]:		tf-idf treshold (default 0.0019)
 		- config_name: 		name of the config to be loaded
 		- input_directory:	directory containing all files to be encoded
 - cnn 
@@ -47,12 +47,12 @@ Values can be accessed in configuration
 
 #### Preprocessing 
 - word selection process [pre_proc]
-	- 0 -->  no wordelimination
+	- 0 -->  no wordelimination (default)
 	- 1 --> wordtyp
 	- 2 --> part of sentence
 	- 3 --> tf-idf
 - Encoding [coding]
-	- 0 --> Ordinal
+	- 0 --> Ordinal (default)
 	- 1 --> BOW
 	- 2 --> ~~One Hot~~ (only partially implemented)
 	- 3 --> W2V
@@ -71,7 +71,3 @@ Values can be accessed in configuration
 #### other saved Values
 - number of encoded texts [text_count]
 - maximum number of word in text [word_max]
-
-### Inputdata
-- folder containing all textfiles defined in Input
-- .csv/txt files 

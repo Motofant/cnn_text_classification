@@ -50,7 +50,7 @@ bar = 0.002*0.95
     # 0 = longest Text with new fillword
     # 1 = shortest Text
     # 2 = longest Text with repeating text
-fix_size_param = 0
+fix_size_param = 2
 
 # Preprocessing
     # 0 = no preproc
@@ -77,7 +77,6 @@ epochs = 10
 stop_word_dir = './stopword/'
 dic_file = './dictionary/def_dictionary.csv'
 topic_dic_file = './dictionary/kat.csv'
-#input_file = 'C:/Users/Erik/Desktop/check.csv'
 dict_file_dir = './dictionary/'
 save_file_dir = './save/'
 out_file_dir = './output/'
@@ -632,7 +631,10 @@ if __name__ == "__main__":
         # bound for tf idf
         if arg == "-t":
             #print(sys.argv[iterator])
-            bar = float(sys.argv[iterator+1])
+            try:
+                bar = float(sys.argv[iterator+1])
+            except:
+                print("Invalid TF-IDF value. Continue with default value.")
             skip_iteration = True
             iterator += 2
             continue
@@ -841,7 +843,7 @@ if __name__ == "__main__":
             config_input[0] = text_count
             config_input[3] = word_max
             config_input[4] = dic_file
-            resetVar(training)
+            #resetVar(training)
             saveShutdown(loaded_config,config_input)
             if delete_saves:
                 deleteSaves(save_file_dir,preproc,coding)
@@ -924,7 +926,7 @@ if __name__ == "__main__":
             for i in prediction:
                 print(cc.showResult(i,classes).draw())
                 i += 1
-        resetVar(training)
+        #resetVar(training)
         if delete_saves:
             deleteSaves(save_file_dir,preproc,coding)
 

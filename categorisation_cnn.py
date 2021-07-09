@@ -14,7 +14,9 @@ from texttable import Texttable
 import pre_proc as p 
 import pipeline as pl
 from data_gen import DataGenerator
+import cnn_config as cc
 import os
+from datetime import datetime
 #import sklearn.model_selection as sms
 
 
@@ -26,7 +28,7 @@ tf.compat.v1.disable_eager_execution() # to prevent tf-bug with inputdata (anugr
 #region
 # Pipelinevariables
 ## already in pipeline-> not needed when porting
-
+'''
 ## new variables
 data_from_file = True
 load_nn = True
@@ -72,7 +74,7 @@ cat_size = 9
 # data
 input_categories = np.array([]) # only when trainingsdata
 input_text = np.array([])
-
+'''
 #endregion
 
 #### Functions ####
@@ -93,22 +95,22 @@ def netParams(encoding, cat_len, text_len, dict_loc):
     elif encoding == 3:
         return text_len, cat_len
 
-def usedNetwork(network_index, input_shape):
+def usedNetwork(network_index, input_shape, output_dim):
     ## defines network used
 
     # network_index: int, basis to determain network
     # input_shape: shape of datainput to design inputlayer  
 
     if network_index == 0:
-        return newNetwork_ord(input_shape)
+        return newNetwork_ord(input_shape, output_dim)
     elif network_index == 1:
-        return newNetwork_bow(input_shape)
+        return newNetwork_bow(input_shape, output_dim)
     elif network_index == 2:
-        return newNetwork_w2v(input_shape)
+        return newNetwork_w2v(input_shape, output_dim)
     elif network_index == 3:
-        return newNetwork_bow_for_w2v(input_shape)
+        return newNetwork_bow_for_w2v(input_shape, output_dim)
     elif network_index == 4:
-        return newNetwork_w2v_for_bow(input_shape)
+        return newNetwork_w2v_for_bow(input_shape, output_dim)
 
 def setCats(path):
     return pd.read_csv(path,header = None)[0].to_numpy()
@@ -142,11 +144,13 @@ def readFile(input_file, train, text_l, word_l,cat_size):
     if train:
         in_cat = pd.read_table(input_file,usecols=[0],header = None).to_numpy()
         in_text = pd.read_table(input_file,usecols=list(range((text_l*word_l)+1))[1:],header = None).to_numpy()
-        print(len(in_text[0]))
     else:
         in_cat = []
         in_text = pd.read_table(input_file,header = None).to_numpy()
-    
+
+    print("shape of inputdata: ")
+    print((in_text.shape[0],text_l,word_l))
+    print()
     return  in_text.reshape((in_text.shape[0],text_l,word_l)),keras.utils.to_categorical(in_cat,cat_size)
 
 def visualHist(history):
@@ -172,7 +176,7 @@ def visualHist(history):
     plt.show()
 
 ## neural networks
-def newNetwork_bow_for_w2v(in_shape):
+def newNetwork_bow_for_w2v(in_shape, output_dim):
 
     model = Sequential()
 
@@ -180,7 +184,7 @@ def newNetwork_bow_for_w2v(in_shape):
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Flatten())
-    model.add(Dense(9,activation="softmax"))
+    model.add(Dense(output_dim,activation="softmax"))
 
     optimizer = keras.optimizers.Adam(lr=0.00001)
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
@@ -189,7 +193,7 @@ def newNetwork_bow_for_w2v(in_shape):
     
     return model
 
-def newNetwork_bow(in_shape):
+def newNetwork_bow(in_shape, output_dim):
 
     model = Sequential()
 
@@ -197,7 +201,7 @@ def newNetwork_bow(in_shape):
     model.add(MaxPooling1D(3,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Flatten())
-    model.add(Dense(9,activation="softmax"))
+    model.add(Dense(output_dim,activation="softmax"))
 
     optimizer = keras.optimizers.Adam(lr=0.00001)
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
@@ -206,7 +210,7 @@ def newNetwork_bow(in_shape):
     
     return model
 
-def newNetwork_w2v_for_bow(in_shape):
+def newNetwork_w2v_for_bow(in_shape, output_dim):
     ## create network (save)
     # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
     # https://keras.io/examples/nlp/pretrained_word_embeddings/
@@ -218,7 +222,7 @@ def newNetwork_w2v_for_bow(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Flatten())
-    model.add(Dense(9, activation="softmax"))
+    model.add(Dense(output_dim, activation="softmax"))
     
     optimizer = keras.optimizers.Adam(lr=0.00001)
     model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
@@ -227,7 +231,7 @@ def newNetwork_w2v_for_bow(in_shape):
 
     return model
 
-def newNetwork_w2v(in_shape):
+def newNetwork_w2v(in_shape, output_dim):
     ## create network (save)
     # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
     # https://keras.io/examples/nlp/pretrained_word_embeddings/
@@ -238,7 +242,7 @@ def newNetwork_w2v(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Flatten())
-    model.add(Dense(9, activation="softmax"))
+    model.add(Dense(output_dim, activation="softmax"))
     
     optimizer = keras.optimizers.Adam(lr=0.0001)
     model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
@@ -247,7 +251,7 @@ def newNetwork_w2v(in_shape):
 
     return model
 
-def newNetwork_ord(in_shape):
+def newNetwork_ord(in_shape, output_dim):
     ## create network (save)
     # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
     # https://keras.io/examples/nlp/pretrained_word_embeddings/
@@ -259,7 +263,7 @@ def newNetwork_ord(in_shape):
     model.add(MaxPooling1D(2,data_format="channels_first"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Flatten())
-    model.add(Dense(9, activation="softmax"))
+    model.add(Dense(output_dim, activation="softmax"))
     
     optimizer = keras.optimizers.Adam(lr=0.0001)
     model.compile( loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'],experimental_run_tf_function=False)
@@ -272,45 +276,49 @@ def newNetwork_ord(in_shape):
 #### "Pipeline" ####
 if __name__ == "__main__":
     # define vectors
-    
+
     input_text = []
     valid_class = []
     # define variables
-        # get config
-    config = pl.loadConfig(con_name)
+        # get configs
+    config_cnn = cc.getProf("cnn")
+    con_name = config_cnn[0]
+    input_dir = config_cnn[1]
+    weight_save = config_cnn[2]
+    training = True if config_cnn[3] == "True" else False
+    load_nn = True if config_cnn[4] == "True" else False
 
+    config = pl.loadConfig(con_name)
     classes = p.getCategories(config[7])
-    Text_length,word_vec_length = netParams(int(config[2]),len(classes),int(config[3]),config[4])
+    cat_size = len(classes)
+    Text_length,word_vec_length = netParams(int(config[2]),cat_size,int(config[3]),config[4])
     nn_input_size = (Text_length,word_vec_length)
     network_id = int(config[8])
-    batch_training = config[9]
+    batch_training = True if config[9] == "True" else False
     batch_size = int(config[10])
     no_epoch = int(config[11])
-    
-    '''
-    print(str(batch_training))
-    print(str(batch_size))
-    print(str(no_epoch))
-    print(str(nn_input_size))
-    
-    breakpoint()
-    '''
 
-    # TODO: check whether single file or datagenerator 
-    if data_from_file:
-        input_text, valid_class = readFile(input_file, training, Text_length, word_vec_length,cat_size)
-        
-        pass
+
+    #print(str(batch_training))
+    #print(str(batch_size))
+    #print(str(no_epoch))
+    #print(str(nn_input_size))
+    #print(str(con_name))
+    #print(config_cnn)
+    #breakpoint()
+
+    if batch_training:
+        # get filelist from inputdir
+        input_files = [f for f in os.listdir(input_dir) if "train" in f]
     else:
-        ## use Vector
-        pass 
-        #print(len(input_text[0]))
+        input_text, valid_class = readFile(input_dir, training, Text_length, word_vec_length,cat_size)
 
     # create CNN
-    model = usedNetwork(network_id, nn_input_size)
+    model = usedNetwork(network_id, nn_input_size, cat_size)
 
     ## if already used -> use weights
-    if load_nn:# or True:
+    ## for testing weights have to be used
+    if load_nn or not training:
         model.load_weights(weight_save)
 
         ## show model
@@ -326,7 +334,7 @@ if __name__ == "__main__":
         ## training -> save weights in the end -> non result needed
             ### TODO: change epoches/batchsize ? 
         if batch_training:
-            trainings_train_gen = DataGenerator(input_files, fp,training, Text_length, word_vec_length, len(classes),1, batch_size,1)
+            trainings_train_gen = DataGenerator(input_files, input_dir,training, Text_length, word_vec_length, cat_size,1, batch_size,1)
             print("train data gen done")
             history = model.fit_generator(generator= trainings_train_gen, epochs =no_epoch)      
         else:
@@ -361,8 +369,8 @@ if __name__ == "__main__":
                 for el in row:
                     i.append(float(el))
                 writer.writerow(i)'''
-        
-        pd.DataFrame(out).to_csv("./result.csv", header = None, index = False)
+        name = "result_"+con_name+"_"+str(datetime.now().strftime("%H:%M:%S"))+".csv"
+        pd.DataFrame(out).to_csv("./results/result.csv", header = None, index = False)
         '''for i in predictions:
             print(j)
             print(showResult(i, classes).draw())
