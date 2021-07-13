@@ -1,7 +1,10 @@
+# libraries
 import keras
 import numpy as np
-from pre_proc import bagOfWords
 import pandas as pd
+
+# Datagenerator designed after https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
+# Datagenerator is used for BOW-Encoded texts due to their size 
 
 class DataGenerator(keras.utils.Sequence):
     # datagen
@@ -21,21 +24,17 @@ class DataGenerator(keras.utils.Sequence):
         self.on_epoch_end()
 
     def readFile(self, input_file, directory, encoding, text_l, word_l ,n_classes):
-        path = directory + input_file #+ ".csv"
-        #if encoding == 2:
-            ## onehot encoded text one per file
-            
+        path = directory + input_file
+
         in_cat = pd.read_table(path,usecols=[0],header = None).to_numpy()
         in_text = pd.read_table(path,usecols=list(range(1,text_l+1)),header = None).to_numpy()
-        #in_text = pd.read_table(path,usecols=list(range(text_l+1))[3:],header = None).to_numpy()
         
         # Bag of Words
         if encoding == 1:
             in_text = np.reshape(np.array(in_text), (len(in_cat),self.dim, self.n_channels))
         # One Hot
         elif encoding == 2:
-            # TODO: think about reading fct
-            in_text = pd.read_table(directory+files[0]).to_numpy()
+            pass
         else:
             in_text = np.reshape(in_text, (len(in_cat),self.dim, self.n_channels))
         return in_text , keras.utils.to_categorical(in_cat, n_classes)
@@ -49,14 +48,10 @@ class DataGenerator(keras.utils.Sequence):
     def __data_generation(self, list_IDs_temp):
         
         # Init
-        #X = np.empty((self.batch_size, *self.dim, self.n_channels))
         X = np.empty((self.batch_size, self.dim, self.n_channels))
-        
         y = np.empty((self.batch_size),dtype = int)
 
         # Full Input_data
-
-        
         # generating Data
         for i, ID in enumerate(list_IDs_temp):
             # generate one Sample 
@@ -68,7 +63,6 @@ class DataGenerator(keras.utils.Sequence):
         return int(np.floor(len(self.list_IDs)/self.n_o_files))
 
     def __getitem__(self, index):
-        #indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
         indexes = self.indexes[index*self.n_o_files:(index+1)*self.n_o_files]
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
         

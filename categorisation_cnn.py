@@ -1,81 +1,24 @@
-#import keras
+# libraries
+import pandas as pd 
+import keras.optimizers as ko
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import os
 import numpy as np
 import keras
 from keras.models import Sequential
-#import keras.models
-from keras.layers import MaxPooling1D, Dense, Dropout, Flatten, Conv2D, Conv1D, MaxPool1D,GlobalMaxPooling1D
-import pandas as pd 
-import keras.optimizers as ko
-import sys
-import tensorflow as tf
-import matplotlib.pyplot as plt
-import logging # TODO
+from keras.layers import MaxPooling1D, Dense, Conv1D
 from texttable import Texttable
+from datetime import datetime
+
+# custom files
 import pre_proc as p 
 import pipeline as pl
 from data_gen import DataGenerator
 import cnn_config as cc
-import os
-from datetime import datetime
-#import sklearn.model_selection as sms
 
-
-tf.compat.v1.disable_eager_execution() # to prevent tf-bug with inputdata (anugrahasinha, https://github.com/tensorflow/tensorflow/issues/38503)
-#np.set_printoptions(threshold=sys.maxsize)
-
-
-#### Variables ####
-#region
-# Pipelinevariables
-## already in pipeline-> not needed when porting
-'''
-## new variables
-data_from_file = True
-load_nn = True
-
-classes = ["Politik", "Kultur", "Gesellschaft", "Leben", "Sport", "Reisen", "Wirtschaft", "Technik", "Wissenschaft"]
-
-# necessary for current version
-
-model_save = "./model/tw2v_10.h5"
-weight_save = "./weight/weight.h5"
-
-con_name = "def" 
-## default values for configvariables
-network_id = 2
-batch_training = False
-no_epoch = 10
-batch_size = 50
-
-## information for 
-training = True
-load_nn = not training
-#input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/tb/test_3_1_0.csv"
-fp = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/tb/"
-if training:
-    if batch_training:
-        input_files = [f for f in os.listdir(fp) if "train" in f]
-    else:
-        input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/ww2v/oute.csv"        
-    #print(input_files)
-    #exit()
-else:
-    input_file = "C:/Users/Erik/Documents/Uni/BA/Repo/cnn_text_classification/output/ww2v/out.csv"
-    pass
-    #exit()
-
-
-# inputparams
-Text_length = 1200 #also bowlength
-word_vec_length =  9# only not 1 in oneHot
-
-cat_size = 9
-
-# data
-input_categories = np.array([]) # only when trainingsdata
-input_text = np.array([])
-'''
-#endregion
+# to prevent tf-bug with inputdata (anugrahasinha, https://github.com/tensorflow/tensorflow/issues/38503)
+tf.compat.v1.disable_eager_execution() 
 
 #### Functions ####
 #region
@@ -275,12 +218,13 @@ def newNetwork_ord(in_shape, output_dim):
 
 #### "Pipeline" ####
 if __name__ == "__main__":
-    # define vectors
 
+    # define vectors
     input_text = []
     valid_class = []
-    # define variables
-        # get configs
+
+    # read configs
+    # get variables
     config_cnn = cc.getProf("cnn")
     con_name = config_cnn[0]
     input_dir = config_cnn[1]
@@ -298,20 +242,13 @@ if __name__ == "__main__":
     batch_size = int(config[10])
     no_epoch = int(config[11])
 
-
-    #print(str(batch_training))
-    #print(str(batch_size))
-    #print(str(no_epoch))
-    #print(str(nn_input_size))
-    #print(str(con_name))
-    #print(config_cnn)
-    #breakpoint()
-
+    # read inputdata
     if batch_training:
         # get filelist from inputdir
         input_files = [f for f in os.listdir(input_dir) if "train" in f]
     else:
         input_text, valid_class = readFile(input_dir, training, Text_length, word_vec_length,cat_size)
+    print("Finished: Read input")
 
     # create CNN
     model = usedNetwork(network_id, nn_input_size, cat_size)
@@ -321,59 +258,44 @@ if __name__ == "__main__":
     if load_nn or not training:
         model.load_weights(weight_save)
 
-        ## show model
+    ## show model
     model.summary()
 
-
-
-    # do stuff
+    # start process of training
     if training:
-        #train_gen = DataGenerator()
-        #model.fit_generator(generator= train_gen)
-        
-        ## training -> save weights in the end -> non result needed
-            ### TODO: change epoches/batchsize ? 
         if batch_training:
+            # for batchtraining start datagenerator 
             trainings_train_gen = DataGenerator(input_files, input_dir,training, Text_length, word_vec_length, cat_size,1, batch_size,1)
             print("train data gen done")
+
+            # train model
             history = model.fit_generator(generator= trainings_train_gen, epochs =no_epoch)      
-        else:
-            history = model.fit(x = input_text,y =valid_class,shuffle = True,epochs=no_epoch, batch_size=batch_size)
-
-            ### update weights
-        model.save_weights(weight_save)
-
-        visualHist(history)
-    else:
-        ## test -> no save requiered (no weight updates) -> Show result
-
-        predictions = model.predict(input_text)
-            #print(valid_class[)
-        print(predictions)
-        # TODO: check if multiple texts as input
-        j = 1
-        print(type(predictions[0][0]))
         
+        else:
+            # train model
+            history = model.fit(x = input_text,y =valid_class,shuffle = True,epochs=no_epoch, batch_size=batch_size)
+        print("Finished: Train Network")
 
+        # update weights after training 
+        model.save_weights(weight_save)
+    
+        # show trainaccuracy
+        visualHist(history)
+
+    else:
+        # Prediction for all texts in input
+        predictions = model.predict(input_text)        
+        print("Finished: Prediction")
+
+        # find category with highest probability
         out = []
         for row in predictions:
             row = list(row)
             i = max(row)
             out.append(row.index(i))
-        #np.savetxt("./result.csv",out,delimiter=",")
-        '''import csv
-        with open("./result.txt", mode="w+", newline='') as dictFile:
-            writer=csv.writer(dictFile)
-            for row in predictions:
-                i = []
-                for el in row:
-                    i.append(float(el))
-                writer.writerow(i)'''
-        name = "result_"+con_name+"_"+str(datetime.now().strftime("%H:%M:%S"))+".csv"
-        pd.DataFrame(out).to_csv("./results/result.csv", header = None, index = False)
-        '''for i in predictions:
-            print(j)
-            print(showResult(i, classes).draw())
-            j += 1
-            ### TODO: Show results
-'''
+        print("Finished: Calculating category with highest probability")     
+
+        # save calcualted categories 
+        name = "result_"+con_name+"_"+str(datetime.now().strftime("%H-%M-%S"))+".csv"
+        pd.DataFrame(out).to_csv("./results/"+name, header = None, index = False)
+        print("Finished: Saving Results")

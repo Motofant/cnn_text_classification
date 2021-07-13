@@ -1,24 +1,14 @@
-import numpy as np
+# libraries
 import spacy
-from spacy.lang.de.stop_words import STOP_WORDS
 import csv
-#import os.path # check file existence
-from os import path,listdir
 import os
 import math
-import pandas as pd
 import logging
+import numpy as np
+import pandas as pd
+from os import path,listdir
 from collections import Counter
-# print version of libs
-
-
-# Ideas, testing and other notes and stuff, TODO: delete before release
-#np.set_printoptions(threshold=sys.maxsize) # just for tests
-
-# CMD-args -> input check -> *cut topic and text* -> cut words -> preproc -> lexikon ->  -> one hot oder so -> ??? -> profit
-
-# output design: 
-# header: position category, size cat, size lex || body: text (v2w format, final transformation in last step) 
+from spacy.lang.de.stop_words import STOP_WORDS
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -440,7 +430,7 @@ def topic(categories, path):
         try:
             word_dict = pd.read_table(dictFile,header=None).stack().tolist() 
         except pd.errors.EmptyDataError:
-            print("No categories in file.")
+            print("No existing categories in catfile.")
 
     for category in categories:
         if not category in word_dict: 

@@ -1,8 +1,5 @@
-# configtry 
-# works for python 3, sonst try gefordert
-
+# libraries
 import configparser as cop
-import os
 
 def existProf(config_location, name):
     config = cop.ConfigParser()

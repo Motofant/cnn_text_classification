@@ -31,9 +31,15 @@ testet on Python 3.7.3
 		- [-t (float)]:		tf-idf treshold (default 0.0019)
 		- config_name: 		name of the config to be loaded
 		- input_directory:	directory containing all files to be encoded
+
 - cnn 
-	- 
+	- python ./categorisation_cnn.py
+
 - create dictionaries
+	- python ./pipeline.py -dict directory name categories
+		- directory: 		location of outputfile
+		- name:				modification of dictionaryname (name_dictionary)
+		- categories: 		number of categories used for encoding (only relevant for W2V, other encodings 0)
 
 ### Variables
 Values can be accessed in configuration

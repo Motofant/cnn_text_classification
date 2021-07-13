@@ -1,20 +1,19 @@
-from time import process_time_ns
-import pre_proc as p
-import configtry as c
-import categorisation_cnn as cc
+# libraries
 import numpy as np
 import keras
 import csv
 import sys
-from os import path,listdir,remove
 import logging
 import pandas as pd
+from time import process_time_ns
+from os import path,listdir,remove
 from re import search
-import spacy
-import tensorflow as tf
-from data_gen import DataGenerator
+
+# custom files
+import pre_proc as p
+import configtry as c
+
 np.set_printoptions(threshold=sys.maxsize) # just for tests
-# TODO: variable configlocation
 
 ## Init logging 
 logging.basicConfig(filename='./Pipeline_time.log',format= "%(asctime)s :: %(relativeCreated)d ms :: %(levelname)s :: %(module)s.%(funcName)s :: %(message)s", level=logging.DEBUG)
@@ -37,7 +36,7 @@ text_vec_l = 1200
 word_vec_l = 1 
 load_nn = False
 class_number = 9
-dict_size_treshold = 0
+dict_size_treshold = 5
 # number of all texts
 text_count = 0
 # max words in text
@@ -112,18 +111,21 @@ def newProfil(config, name, data):
             c.newProf(name)
     return "Profil created succesfully."
 
-def newDictionary(path, name):
+def newDictionary(path, name, n_o_cats):
     ## creates new dictionary
     ## return path of new dictionary
     
     # path:     string, directory of new dictionary
     # name:     string, name of new dictionary
+    # n_o_cats: int, number of categories that are represented in dictionary
+    #           if the encoding is not W2V --> set 0
      
-    file_name = path +"/"+name+ "_dictionary.csv"
+    file_name = path +name+ "_dictionary.csv"
+    categories = [0]*n_o_cats
     with open(file_name, mode='w+', newline='', encoding= 'utf8') as dictFile:
         writer = csv.writer(dictFile, delimiter = "\t")
-        writer.writerow(["BLANK",0])
-        writer.writerow(["NOT IN TRAINING",0])
+        writer.writerow(["BLANK",0]+categories)
+        writer.writerow(["NOT IN TRAINING",0]+categories)
     return file_name
 
 # helping Function
@@ -354,7 +356,7 @@ def saveCat(path, data, prep, code, name):
     
     return True
 
-def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batchsize, vec_l, word_l, filler):
+def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batchsize, vec_l, word_l, filler, batch_enc):
     ## encodes and saves data in batches to avoid to high RAM usage
     ## save in batchsize prepares use of data generator
 
@@ -372,10 +374,16 @@ def saveDataSplit(ord_enc_data, cats, train, pre_proc, encoding, directory, batc
     #                        for ordinal encoding/BOW -> 1
     #                        for w2v -> n_o_classes, OneHot -> length of used dictionary
     # filler:           int, type of filler method
+    # batch_enc:        boolean, wether batchencoding should take place
 
     ## split list into multiple lists of batchsize
-    split_lists = [ord_enc_data[i:i+batchsize] for i in range(0,len(ord_enc_data), batchsize)]
-    split_cats = [cats[i:i+batchsize] for i in range(0,len(cats), batchsize)]
+    if batch_encoding:
+        split_lists = [ord_enc_data[i:i+batchsize] for i in range(0,len(ord_enc_data), batchsize)]
+        split_cats = [cats[i:i+batchsize] for i in range(0,len(cats), batchsize)]
+    else:
+        split_lists = [ord_enc_data]
+        split_cats = [cats]
+    
     ## Save splited lists in different files.
     ## Save names to ID List
 
@@ -572,9 +580,7 @@ def loadConfig(config_name):
 ### Pipeline
 #####################
 if __name__ == "__main__":
-    '''print(spacy.__version__)
-    print(np.__version__)
-    print(tf.__version__)'''
+
     # Commandline
     #region
     # shortest input: pipeline.py inputfile (default config, final input, testingset)
@@ -585,7 +591,6 @@ if __name__ == "__main__":
         print("invalid length")
         exit()
 
-    # TODO change to enumerate?
     skip_iteration = False
 
     iterator = 0 
@@ -599,7 +604,7 @@ if __name__ == "__main__":
 
         if arg == "-dict":
             try:
-                newDictionary(sys.argv[2],sys.argv[3])
+                newDictionary(sys.argv[2],sys.argv[3],int(sys.argv[4]))
                 print("Dictionary created succesfully")
             except Exception:
                 print("wrong input")
@@ -662,6 +667,7 @@ if __name__ == "__main__":
     # load Config, if not defiend use default
     config_input = loadConfig(loaded_config)
     logger.info("loaded config: " + loaded_config)
+
     # load stopwords
     p.loadStopword(stop_word_dir)
 
@@ -702,34 +708,35 @@ if __name__ == "__main__":
             # cat = category(cat, topic_dic_file)
             cat = p.topic(cat,topic_dic_file)
 
-        # deleted cause right now save is needed
-        #    if not final_set:
+            # save encoded Categories
             saveCat(save_file_dir, cat,  preproc,coding, file_name)
-        #print(len(text))
-        # call function wordcut + preprocessing
+        
+        # cuts texts in list of tokens
+        # eliminates words 
+        # encodes texts to ordinal
         analysed_text = textAna(text,preproc,fix_size_param,dic_file,training, word_max, cat[1:], len(classes))
-        #print("after ana")
-        #print(len(analysed_text))
 
-        # TODO: change that in final set no save needed 
+        # save ordinal encoded data 
         saveData(save_file_dir,list(analysed_text), training ,preproc, coding, file_name)
 
         logger.info(file_name + " finished.")
         print(file_name + " finished")
         del analysed_text
         del text
-    # temp exclusion
+
+    # execute all functions that need analysis of all texts  
     if final_set:
+
         # define dictionary length
         if coding != 3:
             dict_length = p.getDictionaryLength(dic_file)
         else: 
-            # TODO: get dict_l 
             dict_l = 0
+
         # def output list
         final_output = []
-        # define params
 
+        # define params
         vec_l = dict_length if coding == 1 else word_max
         word_l = dict_length if coding == 2 else 1
         if coding == 3:
@@ -738,14 +745,11 @@ if __name__ == "__main__":
         cats = []
         texts_list = []
 
-        # define file_parameter
-        
 
         if training:
             file_parameter = "train_"+str(preproc)+"_"+str(coding)    
             # adding categories
-            #check how many files will be transformed
-            # TODO: maybe count in config
+            # check how many files will be transformed
             # load categoryfile
             cats = loadCat(save_file_dir,preproc,coding)
 
@@ -756,6 +760,9 @@ if __name__ == "__main__":
                 if file_parameter in g:
                     # load textfile
                     texts = loadData(save_file_dir,training, preproc,coding,g.replace("train_"+str(preproc)+"_"+str(coding)+"_",""))
+
+                    # calculate TF-IDF 
+                    # eliminate words with TF-IDF below treshold
                     if preproc == 3:
                         logger.info("TF IDF started")
 
@@ -764,25 +771,11 @@ if __name__ == "__main__":
                         logger.info("TF IDF concluded")
                         #breakpoint()
                     texts_list.extend(texts)
-                    '''
-                    # encoding will happen later
-                    f_o= encodingTyp(texts, coding, fix_size_param, dictLen(dic_file),word_max)
-                    
-                    # add category, TODO: can be better
-                    for row in cats:
-                        if row[0] in g:
-                            
-                            i = 0
-                            for element in row[1:]:                      
-                                f_o[i].insert(0, element)
-                                i += 1
-                    
-                    final_output += f_o
-                    '''
             
+            # decrease dictionarysize if wanted
             if dict_size_treshold > 0:
                 logger.info("treshold != 0, dictionarymod started")
-                # decrease dictionary size by deleting
+                # decrease dictionary size by deleting word occuring less then treshold
                 mod_dict, dic_file = p.smallerDict(dic_file, dict_size_treshold)
                 logger.info("treshold != 0, modifying preprocessed text")
                 # modify pre_processed text
@@ -831,13 +824,14 @@ if __name__ == "__main__":
         vec_l = dict_length if coding == 1 else word_max
         word_l = dict_length if coding == 2 else 1
         # DEBUG
-        print(word_max)
+        # print(word_max)
         if coding == 3:
             word_l = 9
         print("beginning save data split")
-        file_ID_list = saveDataSplit(texts_list, transformed_cats,training, preproc, coding, out_file_dir, batch_size,vec_l,word_l,fix_size_param)
+        file_ID_list = saveDataSplit(texts_list, transformed_cats,training, preproc, coding, out_file_dir, batch_size,vec_l,word_l,fix_size_param,batch_encoding)
         logger.info("All preparations (Textanalysis and Preprocessing) concluded.")
         print("save done")
+        
         if just_encode:
             # TODO: save file_ID
             config_input[0] = text_count
@@ -850,90 +844,12 @@ if __name__ == "__main__":
             print("done")
             
             exit()
-
-
-
-
-
-        # prepare data
-        '''
-        # define n_o_texts
-        n_o_texts = len(final_outpu#t)
-        '''
-        # text_vec_l
-        '''        
-        if coding == 1:
-            text_vec_l = vec_l
-        else:
-            text_vec_l = vec_l
-            if training:
-                text_vec_l -= 1'''
-        text_vec_l = vec_l
-        word_vec_l = word_l
-
-        # word_vec_l 
-        '''        
-        if coding == 2:
-            word_vec_l = dict_length
-        else:
-            word_vec_l = 1
-        '''
         
-
-
-        # starting neural Network -> no save needed, watch for correct inputtype
-        model = cc.newNetwork((text_vec_l,word_vec_l))
-        if load_nn:
-            model.load_weights(weight_save)
-
-        model.summary()
-        #final_output = np.asarray(final_output)
-        # adjust input
-        # TODO: make better
-        cats = []
-        #breakpoint()
-        '''if training:
-            cats = [sublist[0] for sublist in final_output]
-            long_list = [item for sublist in final_output for item in sublist[1:]]
-        else:
-            long_list = [item for sublist in final_output for item in sublist]
-
-
-        in_text = np.reshape(long_list,(n_o_texts,text_vec_l,word_vec_l)) 
-        '''
-        if training:
-            # TODO: define trainings- and validationdata
-            trainings_train_gen = DataGenerator(file_ID_list, out_file_dir,training, text_vec_l, word_vec_l, len(classes),coding, batch_size,1)
-            
-            #valid_class = keras.utils.to_categorical(cats,class_number)
-
-            logger.info("start training")
-            history = model.fit_generator(generator= trainings_train_gen, epochs =20, workers=4)
-            #history =model.fit(x = in_text,y =valid_class,shuffle = True,epochs=10, batch_size=10)
-            logger.info("training done")
-            model.save_weights(weight_save)
-
-            #accuracy = model.evaluate(in_text,valid_class)
-            #print(accuracy)
-            
-            cc.visualHist(history)    
-        else:
-            logger.info("start predictions")
-            prediction = model.predict(in_text)    
-            logger.info("predictions done")
-            categories = cc.setCats(topic_dic_file)
-            # TODO: change
-            for i in prediction:
-                print(cc.showResult(i,classes).draw())
-                i += 1
-        #resetVar(training)
-        if delete_saves:
-            deleteSaves(save_file_dir,preproc,coding)
 
 
     # ending, saves necessary data for next launch
     # updating values
-    config_input[3] = word_max
     config_input[0] = text_count
+    config_input[3] = word_max
     config_input[4] = dic_file
     saveShutdown(loaded_config,config_input)
