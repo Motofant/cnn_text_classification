@@ -14,11 +14,10 @@ testet on Python 3.7.3
 - Neural Network
 	- Tensorflow (v2.3.1)
 	- keras (v2.4.3)
-
-
-## First Start:
 	
 ## Usage:
+More Informations in Wiki
+
 ### CommandlineArgs
 - preprocessing pipeline
 	- python ./pipeline.py [optional1 optional2 ...] config_name input_directory
@@ -29,11 +28,8 @@ testet on Python 3.7.3
 			- 1 --> shortest text
 			- 2 --> longest text with text repeat (default)
 		- [-t (float)]:		tf-idf treshold (default 0.0019)
-		- config_name: 		name of the config to be loaded
+		- config_name: 		name of the config to be loaded from test.ini
 		- input_directory:	directory containing all files to be encoded
-
-- cnn 
-	- python ./categorisation_cnn.py
 
 - create dictionaries
 	- python ./pipeline.py -dict directory name categories
@@ -41,8 +37,11 @@ testet on Python 3.7.3
 		- name:				modification of dictionaryname (name_dictionary)
 		- categories: 		number of categories used for encoding (only relevant for W2V, other encodings 0)
 
-### Variables
-Values can be accessed in configuration
+- cnn 
+	- python ./categorisation_cnn.py
+
+### Variables in test.ini
+Values can be accessed in configuration in test.ini
 
 #### Filelocations
 - dictionary [dict_pos]
@@ -77,3 +76,14 @@ Values can be accessed in configuration
 #### other saved Values
 - number of encoded texts [text_count]
 - maximum number of word in text [word_max]
+
+
+### Variables in cnn.ini
+#### Filelocations
+- input: inputfile (if batchencoding used inputdirectory)
+- weight: file containing weight of trained network, needed for categorsation 
+
+#### Variables
+- config: configuration loaded from test.ini
+- trainig: "True"/"False", is data for training or not 
+- load_weight: "True"/"False", should the network use the weights provided in weight
